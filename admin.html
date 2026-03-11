@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美天早餐 - 老闆接單後台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen font-sans">
+    <div class="max-w-6xl mx-auto p-4 lg:p-8">
+        <header class="flex justify-between items-end mb-8 border-b border-slate-700 pb-6 text-white">
+            <div>
+                <h1 class="text-3xl font-black text-orange-500 mb-2">美天早餐 接單系統</h1>
+                <p id="today-date-display" class="text-slate-400 font-bold text-lg"></p>
+            </div>
+            <div class="text-right">
+                <p class="text-slate-400 text-sm mb-1 uppercase tracking-widest">今日總營收</p>
+                <p class="text-5xl font-black text-green-400 leading-none">$<span id="daily-total">0</span></p>
+            </div>
+        </header>
+        <div id="order-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 text-white">
+            <div class="text-center py-20 col-span-full text-slate-600 font-bold text-xl">等待新訂單中...</div>
+        </div>
+    </div>
+    <audio id="notif-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyBg6_9BpcXndrwKL0l1jcp5kYdk8qza-4Q", databaseURL: "https://test-7c0ce-default-rtdb.firebaseio.com", projectId: "test-7c0ce", appId: "1:125105855985:web:f4dbef66a2b7df788ff850" };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        let firstLoad = true;
+        const now = new Date();
+        const tYear = now.getFullYear();
+        const tMonth = now.getMonth() + 1;
+        const tDate = now.getDate();
+        document.getElementById('today-date-display').innerText = `${tYear}/${tMonth}/${tDate} (週${"日一二三四五六"[now.getDay()]})`;
+        database.ref('orders').on('value', (snapshot) => {
+            const container = document.getElementById('order-container');
+            container.innerHTML = '';
+            let totalRevenue = 0;
+            let pendingCount = 0;
+            const orders = [];
+            snapshot.forEach((child) => {
+                const data = child.val();
+                data.key = child.key;
+                const orderTime = data.time || "";
+                const isToday = orderTime.includes(`${tYear}/${tMonth}/${tDate}`) || 
+                                orderTime.includes(`${tYear}/${String(tMonth).padStart(2,'0')}/${String(tDate).padStart(2,'0')}`);
+                if (isToday) {
+                    if (data.status !== "已完成") {
+                        orders.push(data);
+                        pendingCount++;
+                    } else {
+                        totalRevenue += (data.total || 0);
+                    }
+                }
+            });
+            orders.sort((a, b) => a.pickupTime.localeCompare(b.pickupTime));
+            if (orders.length === 0) {
+                container.innerHTML = '<div class="text-center py-20 col-span-full text-slate-600 font-bold text-xl">✅ 目前沒有待處理訂單</div>';
+            }
+            orders.forEach(order => {
+                const itemsHtml = order.items.map(i => `<div class="flex justify-between items-start py-2 border-b border-slate-700/50"><div class="flex-1"><p class="font-black text-lg text-white">${i.n}</p><p class="text-xs text-orange-400 font-bold">${i.d || ''}</p></div><p class="font-bold text-slate-300 ml-4">$${i.p}</p></div>`).join('');
+                container.innerHTML += `<div class="bg-slate-800 rounded-3xl p-6 shadow-2xl border-2 ${order.method === '內用' ? 'border-blue-500' : 'border-orange-500'} relative flex flex-col text-white"><div class="flex justify-between items-start mb-4"><div><span class="text-3xl font-black text-white mr-2">#${order.orderNo}</span><span class="px-3 py-1 rounded-full text-xs font-black ${order.method === '內用' ? 'bg-blue-600' : 'bg-orange-600'}">${order.method}</span></div><div class="text-right"><p class="text-slate-400 text-[10px] font-bold">取餐時間</p><p class="text-3xl font-black text-orange-500 leading-tight">${order.pickupTime}</p></div></div><div class="mb-4 text-white"><p class="text-lg font-black">👤 ${order.customer} <span class="text-slate-500 text-sm font-normal ml-2">${order.phone}</span></p>${order.table ? `<p class="text-sm font-bold text-blue-400 mt-1">📍 桌號: ${order.table}</p>` : ''}</div><div class="flex-1 mb-6">${itemsHtml}</div><div class="flex justify-between items-center mt-auto border-t border-slate-700 pt-4"><p class="text-2xl font-black text-green-400">$${order.total}</p><button onclick="markDone('${order.key}')" class="bg-green-500 hover:bg-green-600 text-slate-900 font-black px-6 py-3 rounded-2xl transition-all active:scale-95 shadow-lg">完成</button></div></div>`;
+            });
+            document.getElementById('daily-total').innerText = totalRevenue;
+            if (!firstLoad && pendingCount > 0) {
+                document.getElementById('notif-sound').play().catch(() => {});
+            }
+            firstLoad = false;
+        });
+        function markDone(key) { database.ref('orders/' + key).update({ status: "已完成" }); }
+    </script>
+</body>
+</html>
