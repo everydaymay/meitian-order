@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>美天早餐 - 延吉店</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        .page { display: none; }
+        .page.active { display: flex; animation: fadeIn 0.2s ease-out; }
+        .category-btn.active { background: white; color: #ea580c; border-left: 5px solid #ea580c; font-weight: 900; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .opt-checkbox:checked + label { background-color: #ffedd5; border-color: #ea580c; color: #ea580c; }
+        .price-text { color: #ef4444; font-weight: 700; font-size: 1.1rem; }
+    </style>
+</head>
+<body class="bg-gray-100 flex justify-center h-screen overflow-hidden text-gray-800">
+    <div class="w-full max-w-md bg-white h-full flex flex-col relative shadow-2xl">
+        
+        <header class="bg-orange-600 text-white p-4 shrink-0 shadow-md flex justify-between items-center z-50">
+            <h1 class="text-xl font-black italic">美天早餐 (延吉店)</h1>
+            <div class="flex gap-2">
+                <button onclick="showHistoryPage()" class="bg-orange-700 text-white px-3 py-2 rounded-full text-xs font-bold shadow-inner">📜 我的紀錄</button>
+                <button onclick="showCartPage()" class="bg-white text-orange-600 px-4 py-2 rounded-full font-black shadow-lg">
+                    🛒 <span id="cart-count">0</span>
+                </button>
+            </div>
+        </header>
+
+        <div id="page-menu" class="page active flex-1 overflow-hidden">
+            <div class="w-1/3 bg-gray-50 border-r overflow-y-auto hide-scrollbar" id="category-list"></div>
+            <div class="w-2/3 overflow-y-auto p-4 space-y-4 hide-scrollbar bg-white" id="menu-items-display"></div>
+        </div>
+
+        <div id="page-options" class="page flex-1 p-6 flex-col bg-white z-40 overflow-y-auto text-center">
+            <div class="flex items-center justify-center gap-2 mt-2">
+                <h2 id="opt-title" class="text-2xl font-black text-gray-800">餐點名稱</h2>
+                <div id="opt-price-display" class="price-text">$0</div>
+            </div>
+            <div id="type-section" class="mt-6"><div id="type-buttons" class="grid grid-cols-2 gap-2"></div></div>
+            <div id="style-section" class="mt-4"><div id="style-buttons" class="grid grid-cols-2 gap-2"></div></div>
+            <div id="special-section" class="mt-6 text-left">
+                <p class="font-bold text-gray-400 text-xs mb-2">挑食調整</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="relative"><input type="checkbox" id="no-veg" value="不加生菜" class="opt-checkbox hidden"><label for="no-veg" class="block w-full py-3 text-center border-2 rounded-xl font-bold cursor-pointer transition-all">不加生菜</label></div>
+                    <div class="relative"><input type="checkbox" id="no-onion" value="不加洋蔥" class="opt-checkbox hidden"><label for="no-onion" class="block w-full py-3 text-center border-2 rounded-xl font-bold cursor-pointer transition-all">不加洋蔥</label></div>
+                </div>
+            </div>
+            <div class="mt-auto pt-8"><button id="confirm-add-btn" class="w-full py-4 bg-orange-600 text-white rounded-2xl font-black text-xl shadow-xl">加入購物車</button><button onclick="goMenu()" class="w-full py-3 text-gray-400 font-bold">取消</button></div>
+        </div>
+
+        <div id="page-cart" class="page flex-1 p-6 flex-col bg-white z-50 overflow-hidden">
+            <h2 class="text-2xl font-black mb-4 border-b pb-2 text-orange-600">您的點餐清單</h2>
+            <div id="cart-items" class="flex-1 overflow-y-auto space-y-3"></div>
+            <div class="pt-4 border-t bg-white mt-auto">
+                <div class="flex justify-between text-2xl font-black mb-4"><span>總金額</span><span id="final-total" class="text-orange-600">$0</span></div>
+                <div class="flex gap-2 mb-4">
+                    <input id="table-num" class="w-1/4 border-2 p-4 rounded-2xl text-center font-black border-gray-200" placeholder="桌號">
+                    <input id="user-name" class="w-3/4 border-2 p-4 rounded-2xl border-gray-200 shadow-sm" placeholder="您的稱呼">
+                </div>
+                <button onclick="sendOrder()" class="w-full bg-orange-600 text-white py-4 rounded-2xl font-black text-xl shadow-xl">確認送出訂單 🚀</button>
+            </div>
+        </div>
+
+        <div id="page-history" class="page flex-1 p-6 flex-col bg-gray-50 z-[60] overflow-hidden">
+            <h2 class="text-2xl font-black mb-4 border-b pb-2 text-orange-600">最近點餐紀錄</h2>
+            <div id="history-items" class="flex-1 overflow-y-auto space-y-4"></div>
+            <button onclick="goMenu()" class="w-full py-4 bg-white text-orange-600 font-black border-2 border-orange-600 rounded-2xl mt-4">返回菜單</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyBg6_9BpcXndrwKL0l1jcp5kYdk8qza-4Q", databaseURL: "https://test-7c0ce-default-rtdb.firebaseio.com", projectId: "test-7c0ce", appId: "1:125105855985:web:f4dbef66a2b7df788ff850" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const fullMenu = [
+            { cat: "吐司漢堡", type: "bread", items: [{n:"里肌豬排", p:{t:45, h:50, f:65, z:65}}, {n:"卡拉雞腿", p:{t:65, h:70, f:85}}] },
+            { cat: "現煎蛋餅", type: "egg", items: [{n:"原味蛋餅", p:30}, {n:"玉米蛋餅", p:35}] },
+            { cat: "精選飲料", type: "drink", items: [{n:"紅茶", p:{m:15, l:20}}, {n:"奶茶", p:{m:20, l:25}}] }
+        ];
+
+        let cart = [];
+        let currentSelection = null;
+
+        function init() {
+            const catList = document.getElementById('category-list');
+            fullMenu.forEach((sec, i) => { catList.innerHTML += `<button onclick="switchCat(${i})" id="cat-${i}" class="category-btn w-full p-6 text-sm font-bold border-b text-gray-500 text-left">${sec.cat}</button>`; });
+            switchCat(0);
+        }
+
+        function switchCat(i) {
+            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`cat-${i}`).classList.add('active');
+            const display = document.getElementById('menu-items-display');
+            const sec = fullMenu[i];
+            display.innerHTML = `<h3 class="font-black text-orange-600 mb-4 border-b pb-2 text-sm">${sec.cat}</h3>`;
+            sec.items.forEach(item => {
+                const priceLabel = (typeof item.p === 'object') ? `${Object.values(item.p)[0]}起` : `$${item.p}`;
+                display.innerHTML += `<button onclick="openOptions('${item.n}', '${sec.type}')" class="w-full flex justify-between items-center p-5 bg-white border-2 border-gray-100 rounded-2xl shadow-sm mb-3 text-left transition-all active:scale-95"><span class="font-black">${item.n}</span><span class="text-orange-600 font-bold text-sm">${priceLabel} ></span></button>`;
+            });
+        }
+
+        function openOptions(name, type) {
+            currentSelection = { name, type, subType: null, style: null, price: 0 };
+            document.getElementById('opt-title').innerText = name;
+            document.getElementById('type-buttons').innerHTML = '';
+            document.getElementById('style-buttons').innerHTML = '';
+            document.querySelectorAll('.opt-checkbox').forEach(cb => cb.checked = false);
+            let item;
+            fullMenu.forEach(s => { if(s.type === type) { const found = s.items.find(i => i.n === name); if(found) item = found; } });
+            currentSelection.price = (typeof item.p === 'object') ? Object.values(item.p)[0] : item.p;
+            document.getElementById('opt-price-display').innerText = '$' + currentSelection.price;
+
+            document.getElementById('special-section').style.display = (type === 'bread') ? 'block' : 'none';
+            document.getElementById('type-section').style.display = (typeof item.p === 'object') ? 'block' : 'none';
+            if (typeof item.p === 'object') {
+                const map = {t:"吐司", h:"漢堡", f:"軟法", z:"總匯", m:"中杯", l:"大杯"};
+                Object.keys(item.p).forEach(k => {
+                    const btn = document.createElement('button'); btn.className = "type-opt-btn py-4 border-2 rounded-xl font-bold border-gray-100";
+                    btn.innerText = `${map[k]} ($${item.p[k]})`; btn.onclick = () => {
+                        document.querySelectorAll('.type-opt-btn').forEach(b => b.classList.remove('bg-orange-100', 'border-orange-500', 'text-orange-600'));
+                        btn.classList.add('bg-orange-100', 'border-orange-500', 'text-orange-600');
+                        currentSelection.subType = map[k]; currentSelection.price = item.p[k]; 
+                        document.getElementById('opt-price-display').innerText = '$' + currentSelection.price;
+                    }; document.getElementById('type-buttons').appendChild(btn);
+                });
+            }
+            let styles = (type === 'egg') ? ["不辣", "加辣"] : (type === 'drink' ? ["冰", "涼", "溫", "熱"] : []);
+            if (styles.length > 0) {
+                document.getElementById('style-section').style.display = 'block';
+                styles.forEach(s => {
+                    const btn = document.createElement('button'); btn.className = "style-opt-btn py-4 border-2 rounded-xl font-bold border-gray-100";
+                    btn.innerText = s; btn.onclick = () => {
+                        document.querySelectorAll('.style-opt-btn').forEach(b => b.classList.remove('bg-orange-100', 'border-orange-500', 'text-orange-600'));
+                        btn.classList.add('bg-orange-100', 'border-orange-500', 'text-orange-600'); currentSelection.style = s;
+                    }; document.getElementById('style-buttons').appendChild(btn);
+                });
+            } else { document.getElementById('style-section').style.display = 'none'; }
+            document.getElementById('confirm-add-btn').onclick = () => finalizeAdd();
+            showPage('page-options');
+        }
+
+        function finalizeAdd() {
+            let finalName = currentSelection.name;
+            if (currentSelection.subType) finalName += `(${currentSelection.subType})`;
+            if (currentSelection.style) finalName += `[${currentSelection.style}]`;
+            let extras = []; document.querySelectorAll('.opt-checkbox:checked').forEach(cb => extras.push(cb.value));
+            if (extras.length > 0) finalName += ` {${extras.join(',')}}`;
+            cart.push({ n: finalName, p: Number(currentSelection.price) });
+            document.getElementById('cart-count').innerText = cart.length;
+            showCartPage();
+        }
+
+        function showCartPage() {
+            const list = document.getElementById('cart-items');
+            let total = 0; list.innerHTML = '';
+            cart.forEach((item, i) => {
+                total += item.p;
+                list.innerHTML += `<div class="flex justify-between items-center p-4 bg-gray-50 rounded-2xl font-bold border"><div><div class="text-sm">${item.n}</div><div class="text-orange-600">$${item.p}</div></div><button onclick="del(${i})" class="text-red-500 text-xs font-bold border px-2 py-1 rounded-lg">刪除</button></div>`;
+            });
+            document.getElementById('final-total').innerText = '$' + total; showPage('page-cart');
+        }
+
+        function showHistoryPage() {
+            showPage('page-history');
+            const historyList = document.getElementById('history-items');
+            historyList.innerHTML = '<p class="text-center text-gray-400 mt-10 text-sm">正在讀取您的專屬紀錄...</p>';
+            
+            const myOrderIds = JSON.parse(localStorage.getItem('myOrders') || '[]');
+            if (myOrderIds.length === 0) {
+                historyList.innerHTML = '<p class="text-center text-gray-400 mt-10">您尚未有點餐紀錄</p>';
+                return;
+            }
+
+            db.ref('orders').once('value', (snapshot) => {
+                historyList.innerHTML = '';
+                let myData = [];
+                snapshot.forEach(child => {
+                    if (myOrderIds.includes(child.key)) { myData.unshift(child.val()); }
+                });
+                
+                if (myData.length === 0) {
+                    historyList.innerHTML = '<p class="text-center text-gray-400 mt-10">尚無紀錄</p>';
+                } else {
+                    myData.forEach(order => {
+                        const total = order.items ? order.items.reduce((s, i) => s + (Number(i.p) || 0), 0) : 0;
+                        historyList.innerHTML += `
+                            <div class="bg-white p-4 rounded-xl border-l-4 border-orange-500 shadow-sm mb-2">
+                                <div class="flex justify-between text-[10px] text-gray-400 mb-2"><span>${order.time}</span><span>桌號: ${order.table}</span></div>
+                                <div class="font-bold text-gray-700 text-sm">${order.items.map(i => i.n).join('、')}</div>
+                                <div class="text-right font-black text-orange-600 mt-2">$${total}</div>
+                            </div>`;
+                    });
+                }
+            });
+        }
+
+        function del(i) { cart.splice(i, 1); if (cart.length === 0) goMenu(); else showCartPage(); document.getElementById('cart-count').innerText = cart.length; }
+        function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+        function goMenu() { showPage('page-menu'); }
+
+        function sendOrder() {
+            const name = document.getElementById('user-name').value;
+            const table = document.getElementById('table-num').value;
+            if (!name) return alert("請填寫您的稱呼");
+            if (cart.length === 0) return alert("購物車是空的");
+            
+            const newOrderRef = db.ref('orders').push();
+            const orderId = newOrderRef.key;
+            const orderData = {
+                customer: name,
+                table: table || "外帶",
+                items: cart,
+                time: new Date().toLocaleString('zh-TW', { hour12: false })
+            };
+            
+            newOrderRef.set(orderData).then(() => {
+                const myOrderIds = JSON.parse(localStorage.getItem('myOrders') || '[]');
+                myOrderIds.push(orderId);
+                localStorage.setItem('myOrders', JSON.stringify(myOrderIds));
+                alert("訂單已送出！");
+                cart = [];
+                document.getElementById('cart-count').innerText = 0;
+                goMenu();
+            }).catch(e => alert("送出失敗: " + e.message));
+        }
+        init();
+    </script>
+</body>
+</html>
