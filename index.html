@@ -71,6 +71,19 @@
     </div>
 
     <script>
+        // === 0. Firebase 資料庫連線設定 (上一版漏掉的關鍵) ===
+        const firebaseConfig = {
+            apiKey: "AIzaSyBg6_9BpcXndrwKL0l1jcp5kYdk8qza-4Q",
+            databaseURL: "https://test-7c0ce-default-rtdb.firebaseio.com",
+            projectId: "test-7c0ce",
+            appId: "1:125105855985:web:f4dbef66a2b7df788ff850"
+        };
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const database = firebase.database();
+
+        // === 1. 真實菜單資料庫 ===
         const meats_toast = [
             {n:"煎蛋",p:30},{n:"肉鬆",p:35},{n:"火腿",p:35},{n:"培根",p:35},{n:"起士",p:35},{n:"薯餅",p:40},{n:"肉排",p:40},
             {n:"鮪魚",p:40},{n:"香雞排",p:45},{n:"里肌豬排",p:45},{n:"鮮蝦",p:45},{n:"燻雞",p:45},{n:"藍帶豬排",p:60},
@@ -94,7 +107,6 @@
             {n:"培根",p:35},{n:"熱狗",p:35},{n:"高麗菜",p:35},{n:"鮪魚",p:40},{n:"肉排",p:40},{n:"香雞排",p:45},
             {n:"里肌豬排",p:45},{n:"鮮蝦",p:45},{n:"燻雞",p:45},{n:"高麗菜培根",p:50},{n:"雞柳",p:65},{n:"明太鱈魚",p:70}
         ];
-        // 拆分果醬口味，各自為獨立選項
         const jams = ["奶油", "花生", "草莓", "巧克力", "椰香", "奶酥", "藍莓", "香蒜"];
         const flatbreads = [{n:"煎蛋",p:40},{n:"火腿",p:45},{n:"肉鬆",p:45},{n:"培根",p:45},{n:"鮪魚",p:50},{n:"里肌豬排",p:55},{n:"燻雞",p:55}];
         const drinks = [
@@ -126,6 +138,7 @@
         let curItem = null;
         let basePrice = 0;
 
+        // === 2. 畫面初始化 ===
         function init() {
             const nav = document.getElementById('nav-bar');
             const menuBox = document.getElementById('menu-box');
@@ -169,6 +182,7 @@
             document.querySelectorAll('section').forEach(sec => observer.observe(sec));
         }
 
+        // === 3. 動態客製化渲染 ===
         function openModal(item, type) {
             curItem = item; curItem.type = type;
             basePrice = item.p || (type === 'drink' ? item.pm : 0);
@@ -336,6 +350,7 @@
             document.getElementById('modal-price-display').innerText = '$' + total;
         }
 
+        // === 4. 購物車與訂單送出邏輯 ===
         function addToCart() {
             let p = parseInt(document.getElementById('modal-price-display').innerText.replace('$',''));
             let n = curItem.n;
@@ -408,13 +423,21 @@
             if (cart.length === 0) return alert("購物車目前是空的喔！");
 
             document.getElementById('btn-submit').innerText = '傳送中...';
+            
+            // 使用 push 將訂單寫入 Firebase
             database.ref('orders').push({
-                customer: name, table: table || "外帶", items: cart,
+                customer: name, 
+                table: table || "外帶", 
+                items: cart,
                 total: parseInt(document.getElementById('cart-total').innerText),
-                time: new Date().toLocaleString()
+                time: new Date().toLocaleString(),
+                status: "新訂單"
             }).then(() => {
                 alert("🎉 訂單成功送出給煎台阿姨囉！");
                 location.reload();
+            }).catch((error) => {
+                alert("傳送失敗了，請檢查網路連線：" + error.message);
+                document.getElementById('btn-submit').innerText = '🚀 確認送出訂單';
             });
         }
 
