@@ -22,9 +22,7 @@
         <header class="bg-orange-500 text-white p-4 shrink-0 shadow-md flex justify-between items-center z-20">
             <div><h1 class="text-xl font-black italic">美天早餐</h1><p class="text-xs text-orange-100">新北市土城區延吉街53號</p></div>
             <div class="flex gap-2">
-                <button onclick="toggleHistory()" class="bg-orange-700 text-white px-3 py-2 rounded-full font-bold shadow-lg flex items-center gap-1 text-sm">
-                    📄 紀錄
-                </button>
+                <button onclick="toggleHistory()" class="bg-orange-700 text-white px-3 py-2 rounded-full font-bold shadow-lg flex items-center gap-1 text-sm">📄 紀錄</button>
                 <button onclick="toggleCart()" class="bg-white text-orange-600 px-4 py-2 rounded-full font-black shadow-lg flex items-center gap-2">
                     🛒 <span id="cart-count" class="bg-red-500 text-white px-2 py-0.5 rounded-full text-sm">0</span>
                 </button>
@@ -32,24 +30,49 @@
         </header>
 
         <div id="nav-bar" class="flex overflow-x-auto p-2 bg-white gap-3 hide-scrollbar shrink-0 border-b sticky top-0 z-10 whitespace-nowrap shadow-sm"></div>
-
         <div id="menu-box" class="flex-1 overflow-y-auto p-4 space-y-8 pb-32 scroll-smooth bg-gray-50"></div>
+
+        <div id="closed-overlay" class="fixed inset-0 bg-black/90 z-[100] hidden flex-col items-center justify-center p-6 text-center">
+            <div class="text-6xl mb-4">🌙</div>
+            <h2 class="text-3xl font-black text-white mb-2">店面休息中</h2>
+            <p class="text-gray-300 font-bold mb-6">營業時間：週一至週六 05:30 ~ 17:00<br>(最後點餐時間 16:50)</p>
+            <p class="text-orange-500 font-bold border-2 border-orange-500 p-3 rounded-xl">期待在營業時間為您服務！</p>
+        </div>
+
+        <div id="welcome-modal" class="fixed inset-0 bg-black/80 z-[60] hidden flex-col justify-end">
+            <div class="bg-white rounded-t-3xl w-full max-w-md mx-auto p-6 modal-enter shadow-2xl">
+                <h2 class="text-2xl font-black text-gray-800 mb-6 border-l-4 border-orange-500 pl-3">歡迎點餐</h2>
+                
+                <p class="font-bold text-gray-600 mb-2">1. 請問要內用還是外帶？</p>
+                <div class="flex gap-2 mb-4">
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="order_method" value="外帶" checked class="hidden opt-radio" onchange="toggleTableInput()">
+                        <div class="border-2 p-3 rounded-xl text-center font-bold text-gray-600 transition-colors">🛍️ 外帶</div>
+                    </label>
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="order_method" value="內用" class="hidden opt-radio" onchange="toggleTableInput()">
+                        <div class="border-2 p-3 rounded-xl text-center font-bold text-gray-600 transition-colors">🍽️ 內用</div>
+                    </label>
+                </div>
+                <input type="text" id="setup-table" placeholder="請輸入桌號 (如: 3)" class="w-full border-2 p-3 rounded-xl mb-6 hidden focus:border-orange-500 outline-none font-bold bg-orange-50">
+
+                <p class="font-bold text-gray-600 mb-2">2. 預計取餐/入座時間 (最快15分鐘後)</p>
+                <select id="setup-time" class="w-full border-2 p-3 rounded-xl font-bold bg-gray-50 mb-6 outline-none text-lg"></select>
+
+                <button onclick="startOrdering()" class="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-xl font-black text-xl shadow-lg transition-colors">開始點餐 🚀</button>
+            </div>
+        </div>
 
         <div id="option-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex-col justify-end">
             <div class="bg-white rounded-t-3xl w-full max-w-md mx-auto h-[85vh] flex flex-col modal-enter shadow-2xl">
                 <div class="p-4 border-b flex justify-between items-center bg-white rounded-t-3xl shrink-0 shadow-sm">
-                    <div>
-                        <h2 id="modal-title" class="text-xl font-bold text-gray-800">餐點名稱</h2>
-                        <p class="text-orange-600 font-black text-xl" id="modal-price-display">$0</p>
-                    </div>
+                    <div><h2 id="modal-title" class="text-xl font-bold text-gray-800">餐點名稱</h2><p class="text-orange-600 font-black text-xl" id="modal-price-display">$0</p></div>
                     <button onclick="closeModal()" class="bg-gray-100 text-gray-600 w-8 h-8 rounded-full font-bold text-lg">✕</button>
                 </div>
-                
                 <div id="modal-dynamic-options" class="flex-1 overflow-y-auto p-5 space-y-6 bg-gray-50"></div>
-
                 <div class="p-4 border-t bg-white shrink-0 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
                     <input type="text" id="modal-note" placeholder="備註 (如需要請填寫)" class="w-full border-2 p-3 rounded-xl focus:border-orange-500 outline-none mb-3 font-bold text-gray-600">
-                    <button onclick="addToCart()" class="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-xl font-black text-lg shadow-lg transition-colors">確認加入購物車</button>
+                    <button onclick="addToCart()" class="w-full bg-orange-600 text-white py-4 rounded-xl font-black text-lg shadow-lg">確認加入購物車</button>
                 </div>
             </div>
         </div>
@@ -62,13 +85,18 @@
                 </div>
                 <div id="cart-items" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-100"></div>
                 <div class="p-5 border-t bg-white shrink-0 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
-                    <div class="flex justify-between items-center mb-4">
+                    
+                    <div class="bg-orange-50 p-3 rounded-xl mb-3 border border-orange-100 text-sm font-bold text-gray-700 flex justify-between items-center">
+                        <div><span id="display-method" class="text-orange-600">外帶</span> <span id="display-table" class="text-gray-500"></span></div>
+                        <div class="text-right">取餐時間：<span id="display-time" class="text-orange-600 text-lg"></span></div>
+                    </div>
+
+                    <div class="flex justify-between items-center mb-3">
                         <span class="text-gray-600 font-bold text-lg">總計金額</span><span class="text-4xl font-black text-red-600">$<span id="cart-total">0</span></span>
                     </div>
-                    <div class="flex gap-2 mb-4">
-                        <input type="text" id="order-table" placeholder="桌號 (外帶免填)" class="w-1/3 border-2 p-3 rounded-xl text-center font-bold bg-gray-50">
-                        <input type="text" id="order-name" placeholder="您的稱呼 (必填)" class="w-2/3 border-2 p-3 rounded-xl font-bold bg-gray-50">
-                    </div>
+                    
+                    <input type="text" id="order-name" placeholder="您的稱呼 (必填，如：王先生)" class="w-full border-2 p-3 rounded-xl mb-3 font-bold bg-gray-50 outline-none focus:border-orange-500">
+                    
                     <button onclick="submitOrder()" id="btn-submit" class="w-full bg-red-500 hover:bg-red-600 text-white py-4 rounded-xl font-black text-xl shadow-lg transition-colors">🚀 確認送出訂單</button>
                 </div>
             </div>
@@ -87,50 +115,25 @@
     </div>
 
     <script>
-        // === 資料庫鑰匙設定 ===
+        // === 🔑 Firebase 資料庫連線 ===
         const firebaseConfig = {
             apiKey: "AIzaSyBg6_9BpcXndrwKL0l1jcp5kYdk8qza-4Q",
             databaseURL: "https://test-7c0ce-default-rtdb.firebaseio.com",
             projectId: "test-7c0ce",
             appId: "1:125105855985:web:f4dbef66a2b7df788ff850"
         };
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
         // === 1. 菜單資料庫 ===
-        const meats_toast = [
-            {n:"煎蛋",p:30},{n:"肉鬆",p:35},{n:"火腿",p:35},{n:"培根",p:35},{n:"起士",p:35},{n:"薯餅",p:40},{n:"肉排",p:40},
-            {n:"鮪魚",p:40},{n:"香雞排",p:45},{n:"里肌豬排",p:45},{n:"鮮蝦",p:45},{n:"燻雞",p:45},{n:"藍帶豬排",p:60},
-            {n:"雞柳",p:60},{n:"明太鱈魚",p:65},{n:"菲力雞排",p:65},{n:"卡拉雞腿(辣味)",p:65}
-        ];
-        const meats_burger = [
-            {n:"煎蛋",p:35},{n:"肉鬆",p:40},{n:"火腿",p:40},{n:"培根",p:40},{n:"起士",p:40},{n:"薯餅",p:45},{n:"肉排",p:45},
-            {n:"鮪魚",p:45},{n:"香雞排",p:50},{n:"里肌豬排",p:50},{n:"鮮蝦",p:50},{n:"燻雞",p:50},{n:"藍帶豬排",p:65},
-            {n:"雞柳",p:65},{n:"明太鱈魚",p:70},{n:"菲力雞排",p:70},{n:"卡拉雞腿(辣味)",p:70}
-        ];
-        const meats_baguette = [
-            {n:"煎蛋",p:50},{n:"肉鬆",p:55},{n:"火腿",p:55},{n:"培根",p:55},{n:"起士",p:55},{n:"薯餅",p:60},{n:"肉排",p:60},
-            {n:"鮪魚",p:60},{n:"香雞排",p:65},{n:"里肌豬排",p:65},{n:"鮮蝦",p:65},{n:"燻雞",p:65},{n:"藍帶豬排",p:80},
-            {n:"明太鱈魚",p:85},{n:"菲力雞排",p:85},{n:"卡拉雞腿(辣味)",p:85}
-        ];
-        const meats_club = [
-            {n:"肉排",p:60},{n:"鮪魚",p:65},{n:"香雞排",p:65},{n:"里肌豬排",p:65},{n:"鮮蝦",p:65},{n:"菲力雞排",p:85}
-        ];
-        const omelets = [
-            {n:"原味",p:30},{n:"玉米",p:35},{n:"九層塔",p:35},{n:"起士",p:35},{n:"肉鬆",p:35},{n:"火腿",p:35},
-            {n:"培根",p:35},{n:"熱狗",p:35},{n:"高麗菜",p:35},{n:"鮪魚",p:40},{n:"肉排",p:40},{n:"香雞排",p:45},
-            {n:"里肌豬排",p:45},{n:"鮮蝦",p:45},{n:"燻雞",p:45},{n:"高麗菜培根",p:50},{n:"雞柳",p:65},{n:"明太鱈魚",p:70}
-        ];
+        const meats_toast = [{n:"煎蛋",p:30},{n:"肉鬆",p:35},{n:"火腿",p:35},{n:"培根",p:35},{n:"起士",p:35},{n:"薯餅",p:40},{n:"肉排",p:40},{n:"鮪魚",p:40},{n:"香雞排",p:45},{n:"里肌豬排",p:45},{n:"鮮蝦",p:45},{n:"燻雞",p:45},{n:"藍帶豬排",p:60},{n:"雞柳",p:60},{n:"明太鱈魚",p:65},{n:"菲力雞排",p:65},{n:"卡拉雞腿(辣味)",p:65}];
+        const meats_burger = [{n:"煎蛋",p:35},{n:"肉鬆",p:40},{n:"火腿",p:40},{n:"培根",p:40},{n:"起士",p:40},{n:"薯餅",p:45},{n:"肉排",p:45},{n:"鮪魚",p:45},{n:"香雞排",p:50},{n:"里肌豬排",p:50},{n:"鮮蝦",p:50},{n:"燻雞",p:50},{n:"藍帶豬排",p:65},{n:"雞柳",p:65},{n:"明太鱈魚",p:70},{n:"菲力雞排",p:70},{n:"卡拉雞腿(辣味)",p:70}];
+        const meats_baguette = [{n:"煎蛋",p:50},{n:"肉鬆",p:55},{n:"火腿",p:55},{n:"培根",p:55},{n:"起士",p:55},{n:"薯餅",p:60},{n:"肉排",p:60},{n:"鮪魚",p:60},{n:"香雞排",p:65},{n:"里肌豬排",p:65},{n:"鮮蝦",p:65},{n:"燻雞",p:65},{n:"藍帶豬排",p:80},{n:"明太鱈魚",p:85},{n:"菲力雞排",p:85},{n:"卡拉雞腿(辣味)",p:85}];
+        const meats_club = [{n:"肉排",p:60},{n:"鮪魚",p:65},{n:"香雞排",p:65},{n:"里肌豬排",p:65},{n:"鮮蝦",p:65},{n:"菲力雞排",p:85}];
+        const omelets = [{n:"原味",p:30},{n:"玉米",p:35},{n:"九層塔",p:35},{n:"起士",p:35},{n:"肉鬆",p:35},{n:"火腿",p:35},{n:"培根",p:35},{n:"熱狗",p:35},{n:"高麗菜",p:35},{n:"鮪魚",p:40},{n:"肉排",p:40},{n:"香雞排",p:45},{n:"里肌豬排",p:45},{n:"鮮蝦",p:45},{n:"燻雞",p:45},{n:"高麗菜培根",p:50},{n:"雞柳",p:65},{n:"明太鱈魚",p:70}];
         const jams = ["奶油", "花生", "草莓", "巧克力", "椰香", "奶酥", "藍莓", "香蒜"];
         const flatbreads = [{n:"煎蛋",p:40},{n:"火腿",p:45},{n:"肉鬆",p:45},{n:"培根",p:45},{n:"鮪魚",p:50},{n:"里肌豬排",p:55},{n:"燻雞",p:55}];
-        const drinks = [
-            {n:"紅茶", m:15, l:20}, {n:"奶茶", m:20, l:25}, {n:"豆漿", m:20}, {n:"無糖豆漿", m:20}, {n:"黑芝麻", m:30}, 
-            {n:"杏仁漿", m:30}, {n:"燕麥薏仁", m:30}, {n:"鴛鴦", m:25, l:30}, {n:"鮮奶茶", m:30, l:35}, {n:"特調咖啡", m:25, l:30},
-            {n:"香濃可可", m:30}, {n:"美式咖啡", m:40, l:50}, {n:"鮮奶咖啡", m:50, l:60}, {n:"柳橙汁", m:25, l:30, iceOnly:true}, 
-            {n:"檸檬紅茶", m:25, l:30, iceOnly:true}, {n:"瓶裝牛奶", m:30}
-        ];
+        const drinks = [{n:"紅茶", m:15, l:20}, {n:"奶茶", m:20, l:25}, {n:"豆漿", m:20}, {n:"無糖豆漿", m:20}, {n:"黑芝麻", m:30}, {n:"杏仁漿", m:30}, {n:"燕麥薏仁", m:30}, {n:"鴛鴦", m:25, l:30}, {n:"鮮奶茶", m:30, l:35}, {n:"特調咖啡", m:25, l:30}, {n:"香濃可可", m:30}, {n:"美式咖啡", m:40, l:50}, {n:"鮮奶咖啡", m:50, l:60}, {n:"柳橙汁", m:25, l:30, iceOnly:true}, {n:"檸檬紅茶", m:25, l:30, iceOnly:true}, {n:"瓶裝牛奶", m:30}];
 
         const menuData = [
             { id: "toast", cat: "吐司", type: "toast", items: meats_toast.map(m => ({ n: m.n+"蛋吐司", p: m.p })) },
@@ -139,10 +142,7 @@
             { id: "club", cat: "總匯", type: "bread_no_egg", items: meats_club.map(m => ({ n: m.n+"總匯", p: m.p })) },
             { id: "noodle", cat: "鐵板麵", type: "noodle", items: [{n:"蘑菇鐵板麵+蛋", p:55}, {n:"黑胡椒鐵板麵+蛋", p:55}, {n:"奶油培根鐵板麵+蛋", p:60}, {n:"義式肉醬鐵板麵+蛋", p:60}, {n:"宮保雞丁鐵板麵+蛋", p:65}, {n:"青醬蟹肉鐵板麵+蛋", p:75}] },
             { id: "omelet", cat: "蛋餅", type: "omelet", items: omelets.map(m => ({ n: m.n+"蛋餅", p: m.p })) },
-            { id: "combo", cat: "套餐", type: "combo", items: [
-                {n:"1號餐(麵+豬排+蛋+中紅)", p:85}, {n:"2號餐(蘿蔔糕+煎餃+蛋餅+中紅)", p:70}, 
-                {n:"3號餐(沙拉吐司+火腿熱狗+蛋+中紅)", p:65}, {n:"兒童餐(果醬吐司+雞塊+薯條+熱狗+中紅)", p:60}
-            ] },
+            { id: "combo", cat: "套餐", type: "combo", items: [{n:"1號餐(麵+豬排+蛋+中紅)", p:85}, {n:"2號餐(蘿蔔糕+煎餃+蛋餅+中紅)", p:70}, {n:"3號餐(沙拉吐司+火腿熱狗+蛋+中紅)", p:65}, {n:"兒童餐(果醬吐司+雞塊+薯條+熱狗+中紅)", p:60}] },
             { id: "jam", cat: "果醬吐司", type: "jam", items: [...jams.map(f => ({ n: f+"吐司", p: 15 })), { n: "雙色果醬厚片", p: 30, isTwo: true }] },
             { id: "flatbread", cat: "乳酪餅", type: "flatbread", items: [...jams.map(f => ({ n: f+"乳酪餅", p: 35 })), ...flatbreads.map(m => ({ n: m.n+"乳酪餅+蛋", p: m.p }))] },
             { id: "snack", cat: "小點", type: "snack", items: [{n:"培根", p:15}, {n:"火腿", p:15}, {n:"熱狗(4條)", p:20}, {n:"薯餅", p:20}, {n:"薯條", p:30}, {n:"里肌肉排", p:30}, {n:"小雞球", p:35}, {n:"麥克雞塊(5塊)", p:40}, {n:"檸檬雞柳條(3條)", p:45}, {n:"薯餅塔(黃芥末醬)", p:45}, {n:"法式吐司(蜂蜜)", p:45}, {n:"德式香腸(2條)", p:50}, {n:"生菜沙拉", p:50}, {n:"菲力雞排", p:50}, {n:"卡拉雞腿(辣味)", p:50}, {n:"藍帶豬排", p:50}] },
@@ -153,8 +153,60 @@
         let cart = [];
         let curItem = null;
         let basePrice = 0;
+        
+        // 點餐設定全域變數
+        let userMethod = "外帶";
+        let userTable = "";
+        let userTime = "";
+
+        // === 2. 初始化與時間管理 ===
+        function checkStoreStatus() {
+            const now = new Date();
+            const day = now.getDay(); // 0 是星期日
+            const timeNum = now.getHours() * 100 + now.getMinutes();
+
+            // 營業時間 05:30 ~ 17:00 (最後點餐 16:50)，週日公休
+            if (day === 0 || timeNum < 530 || timeNum >= 1650) {
+                document.getElementById('closed-overlay').classList.remove('hidden');
+                document.getElementById('closed-overlay').classList.add('flex');
+                return false;
+            }
+            return true;
+        }
+
+        function generateTimeSlots(bufferMins = 15) {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() + bufferMins);
+            let m = Math.ceil(now.getMinutes() / 5) * 5;
+            now.setMinutes(m);
+            now.setSeconds(0);
+
+            const slots = [];
+            const end = new Date();
+            end.setHours(17, 0, 0, 0); // 營業到17:00
+
+            while (now <= end) {
+                let hh = String(now.getHours()).padStart(2, '0');
+                let mm = String(now.getMinutes()).padStart(2, '0');
+                slots.push(`${hh}:${mm}`);
+                now.setMinutes(now.getMinutes() + 5);
+            }
+            return slots;
+        }
 
         function init() {
+            if (!checkStoreStatus()) return; // 沒營業就直接擋下
+
+            // 生成取餐時間下拉選單
+            const timeSelect = document.getElementById('setup-time');
+            const slots = generateTimeSlots();
+            timeSelect.innerHTML = slots.map(t => `<option value="${t}">${t}</option>`).join('');
+            
+            // 顯示歡迎視窗
+            document.getElementById('welcome-modal').classList.remove('hidden');
+            document.getElementById('welcome-modal').classList.add('flex');
+
+            // 渲染菜單
             const nav = document.getElementById('nav-bar');
             const menuBox = document.getElementById('menu-box');
             
@@ -185,6 +237,7 @@
                 menuBox.appendChild(secDiv);
             });
 
+            // 滑動導航監聽
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
@@ -197,7 +250,30 @@
             document.querySelectorAll('section').forEach(sec => observer.observe(sec));
         }
 
-        // === 3. 動態客製化選項 ===
+        // === 點餐設定相關 ===
+        function toggleTableInput() {
+            const method = document.querySelector('input[name="order_method"]:checked').value;
+            const tbInput = document.getElementById('setup-table');
+            if (method === '內用') {
+                tbInput.classList.remove('hidden');
+                tbInput.focus();
+            } else {
+                tbInput.classList.add('hidden');
+            }
+        }
+
+        function startOrdering() {
+            userMethod = document.querySelector('input[name="order_method"]:checked').value;
+            userTable = document.getElementById('setup-table').value;
+            userTime = document.getElementById('setup-time').value;
+
+            if (userMethod === '內用' && !userTable) return alert('內用請記得填寫桌號喔！');
+
+            document.getElementById('welcome-modal').classList.add('hidden');
+            document.getElementById('welcome-modal').classList.remove('flex');
+        }
+
+        // === 3. 動態客製化選項 (同前版) ===
         function openModal(item, type) {
             curItem = item; curItem.type = type;
             basePrice = item.p || (type === 'drink' ? item.pm : 0);
@@ -230,7 +306,6 @@
             if (type === 'burger' || type === 'toast' || type === 'noodle') {
                 dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">蛋的選擇</p>
                     <div class="flex gap-2">${radio('has_egg', '正常含蛋', '正常含蛋', true, 0)}${radio('has_egg', '不加蛋', '不加蛋', false, -5)}</div>${eggDoneness}`;
-                
                 let excludes = type === 'toast' ? ['沙拉','小黃瓜','胡椒粉'] : (type === 'burger' ? ['沙拉','生菜','洋蔥','番茄片','番茄醬','胡椒粉'] : []);
                 if (excludes.length > 0) dyn.innerHTML += `<p class="font-bold text-red-500 mb-2 mt-5">⚠️ 挑食專區 (不吃請打勾)</p>
                     <div class="grid grid-cols-3 gap-2">${excludes.map(e => check('excludes', '去'+e, '去'+e)).join('')}</div>`;
@@ -240,8 +315,7 @@
             if (type === 'bread_no_egg') {
                 dyn.innerHTML += `<p class="font-bold text-red-500 mb-2">⚠️ 挑食專區 (不吃請打勾)</p>
                     <div class="grid grid-cols-3 gap-2">${['沙拉','生菜','洋蔥','番茄片','番茄醬','胡椒粉'].map(e => check('excludes', '去'+e, '去'+e)).join('')}</div>`;
-                dyn.innerHTML += `<div class="mt-5 flex gap-2">${check('addons', '加蛋', '加蛋', 15)}</div>
-                    <div id="egg-wrapper-hidden" style="display:none;">${eggDoneness}</div>`;
+                dyn.innerHTML += `<div class="mt-5 flex gap-2">${check('addons', '加蛋', '加蛋', 15)}</div><div id="egg-wrapper-hidden" style="display:none;">${eggDoneness}</div>`;
             }
 
             if (type === 'omelet') {
@@ -251,31 +325,20 @@
 
             if (type === 'chinese') {
                 dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">醬料選擇</p>
-                    <div class="flex flex-wrap gap-2 mb-3">
-                        ${radio('sauce', '醬油', '醬油', true)}
-                        ${radio('sauce', '辣椒醬油', '辣椒醬油', false)}
-                        ${radio('sauce', '不加醬', '不加醬', false)}
-                    </div>
+                    <div class="flex flex-wrap gap-2 mb-3">${radio('sauce', '醬油', '醬油', true)}${radio('sauce', '辣椒醬油', '辣椒醬油', false)}${radio('sauce', '不加醬', '不加醬', false)}</div>
                     <div class="flex gap-2 mb-3">${check('condiments','加胡椒粉','加胡椒粉')}</div>`;
-                
-                if (item.n === '荷包蛋') {
-                    dyn.innerHTML += eggDoneness;
-                } else if (item.n === '蔥抓餅' || item.n === '煎餃' || item.n.includes('蘿蔔糕')) {
-                    dyn.innerHTML += `<div class="mt-4 flex gap-2">${check('addons', '加蛋', '加蛋', 15)}</div><div id="egg-wrapper-hidden" style="display:none;">${eggDoneness}</div>`;
-                } else if (item.n.includes('蛋')) {
-                    dyn.innerHTML += eggDoneness;
-                }
+                if (item.n === '荷包蛋') dyn.innerHTML += eggDoneness;
+                else if (item.n === '蔥抓餅' || item.n === '煎餃' || item.n.includes('蘿蔔糕')) dyn.innerHTML += `<div class="mt-4 flex gap-2">${check('addons', '加蛋', '加蛋', 15)}</div><div id="egg-wrapper-hidden" style="display:none;">${eggDoneness}</div>`;
+                else if (item.n.includes('蛋')) dyn.innerHTML += eggDoneness;
             }
 
             if (type === 'snack') {
-                dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">調味選擇</p>
-                    <div class="flex gap-2">${check('condiments','加胡椒粉','加胡椒粉')}${check('condiments','加番茄醬','加番茄醬')}</div>`;
+                dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">調味選擇</p><div class="flex gap-2">${check('condiments','加胡椒粉','加胡椒粉')}${check('condiments','加番茄醬','加番茄醬')}</div>`;
             }
 
             if (type === 'jam') {
                 if (!item.isTwo) {
-                    dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">厚度選擇</p>
-                        <div class="flex gap-2">${radio('j_thick', '薄片', '薄片', true, 0)}${radio('j_thick', '厚片', '厚片', false, 10)}</div>`;
+                    dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">厚度選擇</p><div class="flex gap-2">${radio('j_thick', '薄片', '薄片', true, 0)}${radio('j_thick', '厚片', '厚片', false, 10)}</div>`;
                 } else {
                     let jOpts = jams.map(j => `<option value="${j}">${j}</option>`).join('');
                     dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">選2種口味</p>
@@ -286,53 +349,31 @@
             }
             
             if (type === 'flatbread') {
-                dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">蛋的選擇</p>
-                    <div class="flex gap-2">${radio('has_egg', '正常含蛋', '正常含蛋', true, 0)}${radio('has_egg', '不加蛋', '不加蛋', false, -5)}</div>${eggDoneness}`;
+                dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">蛋的選擇</p><div class="flex gap-2">${radio('has_egg', '正常含蛋', '正常含蛋', true, 0)}${radio('has_egg', '不加蛋', '不加蛋', false, -5)}</div>${eggDoneness}`;
             }
 
             if (type === 'drink') {
-                if(item.pl) {
-                    dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">大小杯</p>
-                    <div class="flex gap-2">${radio('d_size', '中杯', '中杯', true, 0)}${radio('d_size', '大杯', '大杯', false, item.pl - item.pm)}</div>`;
-                }
+                if(item.pl) dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">大小杯</p><div class="flex gap-2">${radio('d_size', '中杯', '中杯', true, 0)}${radio('d_size', '大杯', '大杯', false, item.pl - item.pm)}</div>`;
                 if(item.n.includes('瓶裝牛奶')) dyn.innerHTML += `<div class="mt-4 flex gap-2">${check('addons', '換杯', '換杯', 5)}</div>`;
                 dyn.innerHTML += drinkTemp(item.iceOnly);
             }
 
             if (type === 'combo') {
-                if(item.n.includes('2號餐')) dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">蛋餅醬料</p>
-                    <div class="flex gap-2 mb-5">${radio('sauce', '醬油膏', '醬油膏', true)}${radio('sauce', '辣椒醬油', '辣椒醬油', false)}${radio('sauce', '不加醬', '不加醬', false)}</div>`;
-                if(item.n.includes('兒童餐')) dyn.innerHTML += `<p class="font-bold text-orange-500 mb-2">果醬吐司口味備註</p>
-                    <input type="text" id="combo-jam-note" placeholder="如：草莓薄片" class="w-full border-2 p-3 rounded-xl mb-4 focus:border-orange-500 outline-none">`;
+                if(item.n.includes('2號餐')) dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">蛋餅醬料</p><div class="flex gap-2 mb-5">${radio('sauce', '醬油膏', '醬油膏', true)}${radio('sauce', '辣椒醬油', '辣椒醬油', false)}${radio('sauce', '不加醬', '不加醬', false)}</div>`;
+                if(item.n.includes('兒童餐')) dyn.innerHTML += `<p class="font-bold text-orange-500 mb-2">果醬吐司口味備註</p><input type="text" id="combo-jam-note" placeholder="如：草莓薄片" class="w-full border-2 p-3 rounded-xl mb-4 focus:border-orange-500 outline-none">`;
                 if(item.n.includes('蛋')) dyn.innerHTML += eggDoneness;
 
                 let dOpts = '';
                 drinks.forEach(d => {
-                    if (d.n === '紅茶') {
-                        dOpts += `<option value="${d.n}(中)|0">${d.n}(中) +0元</option>`;
-                        if(d.l) dOpts += `<option value="${d.n}(大)|${d.l - 15}">${d.n}(大) +${d.l - 15}元</option>`;
-                    } else {
-                        let diffM = d.m - 10;
-                        dOpts += `<option value="${d.n}(中)|${diffM}">${d.n}(中) +${diffM}元</option>`;
-                        if(d.l) {
-                            let diffL = d.l - 10;
-                            dOpts += `<option value="${d.n}(大)|${diffL}">${d.n}(大) +${diffL}元</option>`;
-                        }
-                    }
+                    if (d.n === '紅茶') { dOpts += `<option value="${d.n}(中)|0">${d.n}(中) +0元</option>`; if(d.l) dOpts += `<option value="${d.n}(大)|${d.l - 15}">${d.n}(大) +${d.l - 15}元</option>`; }
+                    else { let diffM = d.m - 10; dOpts += `<option value="${d.n}(中)|${diffM}">${d.n}(中) +${diffM}元</option>`; if(d.l) { let diffL = d.l - 10; dOpts += `<option value="${d.n}(大)|${diffL}">${d.n}(大) +${diffL}元</option>`; } }
                 });
-                dyn.innerHTML += `<p class="font-bold text-orange-600 mb-2 mt-5">✦ 飲料換購 (依菜單折抵)</p>
-                    <select id="combo-drink" class="w-full border-2 p-3 rounded-xl font-bold bg-orange-50 text-orange-800 outline-none" onchange="calcPrice()">${dOpts}</select>${drinkTemp()}`;
+                dyn.innerHTML += `<p class="font-bold text-orange-600 mb-2 mt-5">✦ 飲料換購 (依菜單折抵)</p><select id="combo-drink" class="w-full border-2 p-3 rounded-xl font-bold bg-orange-50 text-orange-800 outline-none" onchange="calcPrice()">${dOpts}</select>${drinkTemp()}`;
             }
 
             dyn.addEventListener('change', (e) => {
-                if (e.target.name === 'has_egg') {
-                    let wrapper = document.getElementById('egg-wrapper');
-                    if(wrapper) wrapper.style.display = e.target.value.includes('正常') ? 'block' : 'none';
-                }
-                if (e.target.name === 'addons' && e.target.value.includes('加蛋')) {
-                    let wrapper = document.getElementById('egg-wrapper-hidden');
-                    if(wrapper) wrapper.style.display = e.target.checked ? 'block' : 'none';
-                }
+                if (e.target.name === 'has_egg') { let wrapper = document.getElementById('egg-wrapper'); if(wrapper) wrapper.style.display = e.target.value.includes('正常') ? 'block' : 'none'; }
+                if (e.target.name === 'addons' && e.target.value.includes('加蛋')) { let wrapper = document.getElementById('egg-wrapper-hidden'); if(wrapper) wrapper.style.display = e.target.checked ? 'block' : 'none'; }
             });
 
             document.getElementById('option-modal').classList.remove('hidden');
@@ -351,11 +392,9 @@
             document.querySelectorAll('#modal-dynamic-options input[type="checkbox"]:checked').forEach(c => total += parseInt(c.value.split('|')[1]||0));
             let comboDrink = document.getElementById('combo-drink');
             if (comboDrink) total += parseInt(comboDrink.value.split('|')[1]||0);
-
             document.getElementById('modal-price-display').innerText = '$' + total;
         }
 
-        // === 4. 購物車與歷史紀錄邏輯 ===
         function addToCart() {
             let p = parseInt(document.getElementById('modal-price-display').innerText.replace('$',''));
             let n = curItem.n;
@@ -367,14 +406,8 @@
                     if (r.name === 'egg_done') {
                         let hasEgg = document.querySelector('input[name="has_egg"]:checked');
                         let addEgg = document.querySelector('input[value^="加蛋|"]:checked');
-                        if ((hasEgg && hasEgg.value.includes('正常')) || addEgg || n.includes('蛋') || curItem.type === 'combo') {
-                            details.push(`[${val}]`);
-                        }
-                    } else if (r.name === 'kids_jam') {
-                        details.push(`兒童餐果醬:${val}`);
-                    } else {
-                        details.push(val);
-                    }
+                        if ((hasEgg && hasEgg.value.includes('正常')) || addEgg || n.includes('蛋') || curItem.type === 'combo') details.push(`[${val}]`);
+                    } else if (r.name === 'kids_jam') { details.push(`兒童餐果醬:${val}`); } else { details.push(val); }
                 }
             });
 
@@ -417,73 +450,97 @@
 
         function removeCart(idx) { cart.splice(idx, 1); updateCart(); }
         
-        function toggleCart() {
-            const d = document.getElementById('cart-drawer');
-            d.classList.contains('hidden') ? (d.classList.remove('hidden'), d.classList.add('flex')) : (d.classList.add('hidden'), d.classList.remove('flex'));
+        // === 4. 取餐時間防呆與開啟購物車 ===
+        function validateTime() {
+            const slots = generateTimeSlots(15);
+            let isValid = false;
+            // 檢查使用者當初選的時間，是否還大於等於現在的最低備餐時間
+            for(let i=0; i<slots.length; i++) {
+                if(userTime === slots[i] || userTime > slots[0]) { isValid = true; break; }
+            }
+            if (!isValid && slots.length > 0) {
+                alert(`老闆/老闆娘好，因為您看菜單花了一點時間，為了確保現做品質，取餐時間將為您自動延後到最快的 ${slots[0]} 喔！`);
+                userTime = slots[0];
+            }
         }
 
-        // --- 新增：歷史紀錄功能 ---
-        function toggleHistory() {
-            const d = document.getElementById('history-drawer');
+        function toggleCart() {
+            const d = document.getElementById('cart-drawer');
             if (d.classList.contains('hidden')) {
-                renderHistory();
+                validateTime();
+                document.getElementById('display-method').innerText = userMethod;
+                document.getElementById('display-table').innerText = userMethod === '內用' ? `(桌號: ${userTable})` : '';
+                document.getElementById('display-time').innerText = userTime;
+
                 d.classList.remove('hidden'); d.classList.add('flex');
             } else {
                 d.classList.add('hidden'); d.classList.remove('flex');
             }
         }
 
+        // === 5. 歷史紀錄 ===
+        function toggleHistory() {
+            const d = document.getElementById('history-drawer');
+            if (d.classList.contains('hidden')) { renderHistory(); d.classList.remove('hidden'); d.classList.add('flex'); } 
+            else { d.classList.add('hidden'); d.classList.remove('flex'); }
+        }
+
         function renderHistory() {
-            // 從手機瀏覽器抓取專屬紀錄
             let myOrders = JSON.parse(localStorage.getItem('meitian_history') || '[]');
             const cDiv = document.getElementById('history-items');
-            if(myOrders.length === 0) {
-                cDiv.innerHTML = '<div class="text-center text-gray-400 mt-10 font-bold">您還沒有點餐紀錄喔！</div>';
-                return;
-            }
+            if(myOrders.length === 0) { cDiv.innerHTML = '<div class="text-center text-gray-400 mt-10 font-bold">您還沒有點餐紀錄喔！</div>'; return; }
             
             let html = '';
             myOrders.forEach(order => {
                 let itemsHtml = order.items.map(i => `<div class="text-sm text-gray-700">${i.n} ${i.d ? `<span class="text-xs text-orange-500 font-bold ml-1">(${i.d})</span>` : ''}</div>`).join('');
                 html += `
-                    <div class="bg-white p-4 rounded-xl border shadow-sm">
-                        <div class="flex justify-between items-center border-b pb-2 mb-2">
-                            <span class="text-xs text-gray-500">${order.time}</span>
-                            <span class="font-black text-orange-600">$${order.total}</span>
+                    <div class="bg-white p-4 rounded-xl border shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-red-500 text-white font-black px-4 py-1 rounded-bl-xl shadow-md text-sm">號碼牌 #${order.orderNo}</div>
+                        <div class="border-b pb-2 mb-2 mt-4">
+                            <div class="text-sm font-bold text-gray-800">${order.method} <span class="text-orange-600 ml-2">🕒 ${order.time}</span></div>
+                            <div class="text-xs text-gray-400 mt-1">下單時間: ${order.orderTime}</div>
                         </div>
-                        <div class="space-y-1">${itemsHtml}</div>
+                        <div class="space-y-1 mb-3">${itemsHtml}</div>
+                        <div class="text-right font-black text-orange-600 text-lg border-t pt-2">總計 $${order.total}</div>
                     </div>`;
             });
             cDiv.innerHTML = html;
         }
 
-        // === 5. 送出訂單與儲存紀錄 ===
+        // === 6. 產生號碼牌與送出訂單 ===
         function submitOrder() {
             const name = document.getElementById('order-name').value;
-            const table = document.getElementById('order-table').value;
-            if (!name) return alert("老闆/老闆娘好，請客人輸入稱呼唷！");
+            if (!name) return alert("老闆/老闆娘好，結帳前請讓客人輸入稱呼唷！");
             if (cart.length === 0) return alert("購物車目前是空的喔！");
 
             document.getElementById('btn-submit').innerText = '傳送中...';
             
             let totalAmt = parseInt(document.getElementById('cart-total').innerText);
-            let currentTime = new Date().toLocaleString();
+            let currentTimeStr = new Date().toLocaleString();
+            
+            // 產生 100~999 的隨機號碼牌
+            const orderNo = String(Math.floor(Math.random() * 900) + 100);
 
-            database.ref('orders').push({
+            let orderData = {
+                orderNo: orderNo,
                 customer: name, 
-                table: table || "外帶", 
+                method: userMethod,
+                table: userMethod === '內用' ? userTable : "",
+                pickupTime: userTime,
                 items: cart,
                 total: totalAmt,
-                time: currentTime,
+                time: currentTimeStr,
                 status: "新訂單"
-            }).then(() => {
-                // 成功寫入資料庫後，把這筆訂單存在「這台手機」裡
+            };
+
+            database.ref('orders').push(orderData).then(() => {
+                // 儲存到手機
                 let myOrders = JSON.parse(localStorage.getItem('meitian_history') || '[]');
-                myOrders.unshift({ time: currentTime, total: totalAmt, items: cart }); // 放在最上面
-                if(myOrders.length > 15) myOrders.pop(); // 最多存最近 15 筆，避免手機空間佔用
+                myOrders.unshift({ orderNo: orderNo, method: userMethod, time: userTime, orderTime: currentTimeStr, total: totalAmt, items: cart });
+                if(myOrders.length > 15) myOrders.pop();
                 localStorage.setItem('meitian_history', JSON.stringify(myOrders));
 
-                alert("🎉 訂單成功送出給煎台阿姨囉！");
+                alert(`🎉 訂單已送出！\n\n您的號碼牌是：#${orderNo}\n取餐時間：${userTime}\n\n請截圖或至「紀錄」查看。`);
                 location.reload();
             }).catch((error) => {
                 alert("傳送失敗了，請檢查網路連線：" + error.message);
