@@ -51,7 +51,8 @@
                     <label class="flex-1 cursor-pointer"><input type="radio" name="order_method" value="外帶" checked class="hidden opt-radio" onchange="toggleTableInput()"><div class="border-2 p-3 rounded-xl text-center font-bold text-gray-600 transition-colors">🛍️ 外帶</div></label>
                     <label class="flex-1 cursor-pointer"><input type="radio" name="order_method" value="內用" class="hidden opt-radio" onchange="toggleTableInput()"><div class="border-2 p-3 rounded-xl text-center font-bold text-gray-600 transition-colors">🍽️ 內用</div></label>
                 </div>
-                <input type="text" id="setup-table" placeholder="請輸入桌號 (如: 3)" class="w-full border-2 p-3 rounded-xl mb-6 hidden focus:border-orange-500 outline-none font-bold bg-orange-50">
+                
+                <input type="text" id="setup-table" inputmode="numeric" pattern="[0-9]*" maxlength="2" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 2);" placeholder="請輸入桌號 (限數字)" class="w-full border-2 p-3 rounded-xl mb-6 hidden focus:border-orange-500 outline-none font-bold bg-orange-50">
 
                 <p class="font-bold text-gray-600 mb-2">2. 預計取餐/入座時間 (最快15分鐘後)</p>
                 <select id="setup-time" class="w-full border-2 p-3 rounded-xl font-bold bg-gray-50 mb-6 outline-none text-lg"></select>
@@ -69,7 +70,7 @@
                 <div id="modal-dynamic-options" class="flex-1 overflow-y-auto p-5 space-y-6 bg-gray-50 scroll-smooth"></div>
                 <div class="p-4 border-t bg-white shrink-0 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
                     <input type="text" id="modal-note" maxlength="20" placeholder="備註 (如需要請填寫，限20字)" class="w-full border-2 p-3 rounded-xl focus:border-orange-500 outline-none mb-3 font-bold text-gray-600">
-                    <button onclick="addToCart()" class="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-xl font-black text-lg shadow-lg">確認加入購物車</button>
+                    <button id="add-to-cart-btn" onclick="addToCart()" class="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-xl font-black text-lg shadow-lg">確認加入購物車</button>
                 </div>
             </div>
         </div>
@@ -146,6 +147,7 @@
 
         let cart = []; let curItem = null; let basePrice = 0;
         let userMethod = "外帶"; let userTable = ""; let userTime = "";
+        let editingIndex = -1;
 
         function checkStoreStatus() {
             const now = new Date();
@@ -233,6 +235,9 @@
         }
 
         function openModal(item, type) {
+            editingIndex = -1;
+            document.getElementById('add-to-cart-btn').innerText = "確認加入購物車";
+            
             curItem = item; curItem.type = type; basePrice = item.p || (type === 'drink' ? item.pm : 0);
             document.getElementById('modal-title').innerText = item.n; document.getElementById('modal-note').value = '';
             const dyn = document.getElementById('modal-dynamic-options'); dyn.innerHTML = '';
@@ -290,7 +295,6 @@
                 if(item.n.includes('2號餐')) dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">蛋餅醬料</p><div class="flex gap-2 mb-5">${radio('sauce', '醬油膏', '醬油膏', true)}${radio('sauce', '辣椒醬油', '辣椒醬油', false)}${radio('sauce', '不加醬', '不加醬', false)}</div>`;
                 
                 if(item.n.includes('1號餐') || item.n.includes('3號餐')) dyn.innerHTML += eggDoneness;
-                // 新增兒童餐備註的 maxlength="20"
                 if(item.n.includes('兒童餐')) dyn.innerHTML += `<p class="font-bold text-orange-500 mb-2">果醬吐司口味備註</p><input type="text" id="combo-jam-note" maxlength="20" placeholder="如：草莓薄片 (限20字)" class="w-full border-2 p-3 rounded-xl mb-4 focus:border-orange-500 outline-none">`;
 
                 let dOpts = '';
@@ -312,10 +316,32 @@
             });
 
             document.getElementById('option-modal').classList.remove('hidden'); document.getElementById('option-modal').classList.add('flex');
-            
             dyn.scrollTop = 0; 
-            
             setTimeout(calcPrice, 10);
+        }
+
+        function editCart(idx) {
+            let itemToEdit = cart[idx];
+            toggleCart();
+            openModal(itemToEdit.baseItem, itemToEdit.type);
+            
+            editingIndex = idx;
+            document.getElementById('add-to-cart-btn').innerText = "💾 儲存修改";
+            
+            setTimeout(() => {
+                let raw = itemToEdit.raw;
+                if(!raw) return;
+                
+                for(let key in raw.radios) { let r = document.querySelector(`input[name="${key}"][value="${raw.radios[key]}"]`); if(r) r.checked = true; }
+                raw.checks.forEach(val => { let c = document.querySelector(`input[type="checkbox"][value="${val}"]`); if(c) c.checked = true; });
+                for(let key in raw.selects) { let s = document.getElementById(key); if(s) s.value = raw.selects[key]; }
+                let cjn = document.getElementById('combo-jam-note'); if(cjn) cjn.value = raw.comboJamNote || '';
+                
+                document.getElementById('modal-note').value = itemToEdit.note || '';
+
+                document.querySelectorAll('#modal-dynamic-options input:checked').forEach(el => { el.dispatchEvent(new Event('change', { bubbles: true })); });
+                calcPrice();
+            }, 50);
         }
 
         function closeModal() { document.getElementById('option-modal').classList.add('hidden'); document.getElementById('option-modal').classList.remove('flex'); }
@@ -331,9 +357,11 @@
         function addToCart() {
             let p = parseInt(document.getElementById('modal-price-display').innerText.replace('$',''));
             let n = curItem.n; let details = [];
-            
+            let rawState = { radios: {}, checks: [], selects: {}, comboJamNote: '' };
+
             document.querySelectorAll('#modal-dynamic-options input[type="radio"]:checked').forEach(r => {
                 let val = r.value.split('|')[0];
+                rawState.radios[r.name] = r.value;
                 if(!['正常含蛋', '薄片', '中杯'].includes(val)) {
                     if (r.name === 'egg_done') {
                         let hasEgg = document.querySelector('input[name="has_egg"]:checked');
@@ -345,24 +373,27 @@
                         else if (curItem.type === 'combo' && (n.includes('1號餐') || n.includes('3號餐'))) { shouldShowDoneness = true; }
                         
                         if (shouldShowDoneness) details.push(`[${val}]`);
-                    } else if (r.name === 'n_flavor' && curItem.type === 'combo') {
-                        details.push(`${val}口味`);
-                    } else { 
-                        details.push(val); 
-                    }
+                    } else if (r.name === 'n_flavor' && curItem.type === 'combo') { details.push(`${val}口味`); } 
+                    else { details.push(val); }
                 }
             });
 
-            document.querySelectorAll('#modal-dynamic-options input[type="checkbox"]:checked').forEach(c => details.push(c.value.split('|')[0]));
+            document.querySelectorAll('#modal-dynamic-options input[type="checkbox"]:checked').forEach(c => {
+                rawState.checks.push(c.value); details.push(c.value.split('|')[0]);
+            });
 
-            let comboDrink = document.getElementById('combo-drink'); if (comboDrink) details.push(`飲:${comboDrink.value.split('|')[0]}`);
-            let jam1 = document.getElementById('jam1'); let jam2 = document.getElementById('jam2'); if (jam1 && jam2) details.push(`(${jam1.value}+${jam2.value})`);
-            let comboJamNote = document.getElementById('combo-jam-note'); if (comboJamNote && comboJamNote.value) details.push(`果醬:${comboJamNote.value}`);
+            let comboDrink = document.getElementById('combo-drink'); if (comboDrink) { rawState.selects['combo-drink'] = comboDrink.value; details.push(`飲:${comboDrink.value.split('|')[0]}`); }
+            let jam1 = document.getElementById('jam1'); let jam2 = document.getElementById('jam2'); if (jam1 && jam2) { rawState.selects['jam1'] = jam1.value; rawState.selects['jam2'] = jam2.value; details.push(`(${jam1.value}+${jam2.value})`); }
+            let comboJamNote = document.getElementById('combo-jam-note'); if (comboJamNote && comboJamNote.value) { rawState.comboJamNote = comboJamNote.value; details.push(`果醬:${comboJamNote.value}`); }
             let note = document.getElementById('modal-note').value; if (note) details.push(`備:${note}`);
             
-            cart.push({ n: n, p: p, d: details.join(' / ') });
+            let cartItemObj = { n: n, p: p, d: details.join(' / '), baseItem: curItem, type: curItem.type, raw: rawState, note: note };
+
+            let wasEditing = editingIndex > -1;
+            if (wasEditing) { cart[editingIndex] = cartItemObj; } else { cart.push(cartItemObj); }
+            
             updateCart(); closeModal();
-            const cBtn = document.getElementById('cart-count'); cBtn.classList.add('scale-150'); setTimeout(() => cBtn.classList.remove('scale-150'), 300);
+            if (wasEditing) { setTimeout(toggleCart, 150); } else { const cBtn = document.getElementById('cart-count'); cBtn.classList.add('scale-150'); setTimeout(() => cBtn.classList.remove('scale-150'), 300); }
         }
 
         function updateCart() {
@@ -371,8 +402,8 @@
             cart.forEach((i, idx) => {
                 t += i.p; let redText = i.d.replace(/不加蛋|去[^\s\/]+|不加醬/g, m => `<span class="text-red-500 font-bold">${m}</span>`);
                 cDiv.innerHTML += `<div class="bg-white p-3 rounded-xl border flex justify-between items-center shadow-sm">
-                    <div><div class="font-bold text-gray-800">${i.n}</div><div class="text-xs text-gray-500 mt-1">${redText}</div></div>
-                    <div class="flex items-center gap-3"><span class="font-black text-orange-600">$${i.p}</span><button onclick="removeCart(${idx})" class="text-red-400 font-bold text-sm bg-red-50 px-2 py-1 rounded">刪除</button></div></div>`;
+                    <div><div class="font-bold text-gray-800">${i.n}</div><div class="text-xs text-gray-500 mt-1 leading-snug">${redText}</div></div>
+                    <div class="flex items-center gap-2"><span class="font-black text-orange-600 mr-1">$${i.p}</span><button onclick="editCart(${idx})" class="text-blue-500 font-bold text-sm bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-lg">修改</button><button onclick="removeCart(${idx})" class="text-red-400 font-bold text-sm bg-red-50 border border-red-100 px-3 py-1.5 rounded-lg">刪除</button></div></div>`;
             });
             document.getElementById('cart-total').innerText = t;
         }
@@ -384,7 +415,7 @@
             let isValid = false;
             for(let i=0; i<slots.length; i++) { if(userTime === slots[i] || userTime > slots[0]) { isValid = true; break; } }
             if (!isValid && slots.length > 0) {
-                alert(`老闆/老闆娘好，因為您看菜單花了一點時間，為了確保現做品質，取餐時間將為您自動延後到最快的 ${slots[0]} 喔！`);
+                alert(`因為您點餐花了一點時間，為了確保餐點品質，取餐時間已為您自動順延至最快的 ${slots[0]} 喔！`);
                 userTime = slots[0];
             }
             return userTime;
@@ -429,9 +460,9 @@
             const name = document.getElementById('order-name').value;
             const phone = document.getElementById('order-phone').value;
             
-            if (!name) return alert("老闆/老闆娘好，結帳前請讓客人輸入稱呼唷！");
-            if (!phone) return alert("麻煩輸入您的手機號碼，方便我們為您備餐聯繫喔！");
-            if (cart.length === 0) return alert("購物車目前是空的喔！");
+            if (!name) return alert("請輸入您的稱呼，方便我們為您備餐喔！");
+            if (!phone) return alert("請輸入您的聯絡電話，方便我們聯繫喔！");
+            if (cart.length === 0) return alert("購物車目前是空的喔！先點些好吃的吧！");
 
             document.getElementById('btn-submit').innerText = '傳送中...';
             
