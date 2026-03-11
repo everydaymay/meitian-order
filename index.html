@@ -43,7 +43,13 @@
         }
         .modal-enter { animation: slideUp 0.3s ease-out forwards; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .opt-checkbox:checked + div, .opt-radio:checked + div { background-color: #fff7ed; border-color: #ea580c; color: #ea580c; font-weight: bold; }
+        /* 當選項被選中時的顏色 */
+        .opt-checkbox:checked + div, .opt-radio:checked + div { 
+            background-color: #fff7ed; 
+            border-color: #ea580c; 
+            color: #ea580c !important; 
+            font-weight: bold; 
+        }
     </style>
 </head>
 <body class="bg-gray-50 flex justify-center h-screen overflow-hidden text-gray-800 font-sans">
@@ -52,7 +58,7 @@
         <header class="bg-orange-500 text-white px-4 py-5 shrink-0 shadow-lg z-20">
             <div class="flex justify-between items-center">
                 <div class="flex-1 mr-2">
-                    <h1 class="text-2xl font-black italic tracking-wider text-white">美天早餐</h1>
+                    <h1 class="text-2xl font-black italic tracking-wider">美天早餐</h1>
                     <div class="text-[11px] text-orange-100 font-medium leading-tight mt-1 opacity-90">
                         新北市土城區延吉街53號 | <span class="whitespace-nowrap">02-22703918</span>
                     </div>
@@ -84,13 +90,19 @@
                 <h2 class="text-2xl font-black text-gray-800 mb-6 border-l-4 border-orange-500 pl-3">歡迎點餐</h2>
                 <p class="font-bold text-gray-600 mb-2">1. 請問要內用還是外帶？</p>
                 <div class="flex gap-2 mb-4">
-                    <label class="flex-1 cursor-pointer"><input type="radio" name="order_method" value="外帶" checked class="hidden opt-radio" onchange="toggleTableInput()"><div class="border-2 p-3 rounded-xl text-center font-bold text-gray-600 transition-colors text-white">🛍️ 外帶</div></label>
-                    <label class="flex-1 cursor-pointer"><input type="radio" name="order_method" value="內用" class="hidden opt-radio" onchange="toggleTableInput()"><div class="border-2 p-3 rounded-xl text-center font-bold text-gray-600 transition-colors text-white">🍽️ 內用</div></label>
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="order_method" value="外帶" checked class="hidden opt-radio" onchange="toggleTableInput()">
+                        <div class="border-2 p-3 rounded-xl text-center font-bold text-gray-600 transition-colors">🛍️ 外帶</div>
+                    </label>
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="order_method" value="內用" class="hidden opt-radio" onchange="toggleTableInput()">
+                        <div class="border-2 p-3 rounded-xl text-center font-bold text-gray-600 transition-colors">🍽️ 內用</div>
+                    </label>
                 </div>
-                <input type="text" id="setup-table" inputmode="numeric" pattern="[0-9]*" maxlength="2" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 2);" placeholder="請輸入桌號 (限數字)" class="w-full border-2 p-3 rounded-xl mb-6 hidden focus:border-orange-500 outline-none font-bold bg-orange-50 text-xl text-center text-gray-700 text-gray-700">
+                <input type="text" id="setup-table" inputmode="numeric" pattern="[0-9]*" maxlength="2" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 2);" placeholder="請輸入桌號 (限數字)" class="w-full border-2 p-3 rounded-xl mb-6 hidden focus:border-orange-500 outline-none font-bold bg-orange-50 text-xl text-center text-gray-700">
                 <p class="font-bold text-gray-600 mb-2">2. 預計取餐/入座時間 (需15分備餐)</p>
-                <select id="setup-time" class="w-full border-2 p-3 rounded-xl font-bold bg-gray-50 mb-6 outline-none text-lg text-gray-700 text-gray-700"></select>
-                <button onclick="startOrdering()" class="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-xl font-black text-xl shadow-lg transition-colors text-white">開始點餐 🚀</button>
+                <select id="setup-time" class="w-full border-2 p-3 rounded-xl font-bold bg-gray-50 mb-6 outline-none text-lg text-gray-700"></select>
+                <button onclick="startOrdering()" class="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-xl font-black text-xl shadow-lg transition-colors">開始點餐 🚀</button>
             </div>
         </div>
 
@@ -124,15 +136,7 @@
                         <span class="text-gray-600 font-bold text-lg">總計金額</span><span class="text-4xl font-black text-red-600">$<span id="cart-total">0</span></span>
                     </div>
                     <input type="text" id="order-name" placeholder="您的稱呼 (必填)" class="w-full border-2 p-3 rounded-xl mb-2 font-bold bg-gray-50 outline-none focus:border-orange-500 text-gray-700">
-                    
-                    <input type="text" id="order-phone" 
-                        inputmode="numeric" 
-                        pattern="[0-9]*" 
-                        maxlength="10" 
-                        oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);" 
-                        placeholder="您的聯絡電話 (8~10位數字)" 
-                        class="w-full border-2 p-3 rounded-xl mb-4 font-bold bg-gray-50 outline-none focus:border-orange-500 text-gray-700">
-                    
+                    <input type="text" id="order-phone" inputmode="numeric" pattern="[0-9]*" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);" placeholder="您的聯絡電話 (8~10位數字)" class="w-full border-2 p-3 rounded-xl mb-4 font-bold bg-gray-50 outline-none focus:border-orange-500 text-gray-700">
                     <button onclick="submitOrder()" id="btn-submit" class="w-full bg-red-500 hover:bg-red-600 text-white py-4 rounded-xl font-black text-xl shadow-lg transition-colors">🚀 確認送出訂單</button>
                 </div>
             </div>
@@ -267,8 +271,8 @@
             curItem = item; curItem.type = type; basePrice = item.p || (type === 'drink' ? item.pm : 0);
             document.getElementById('modal-title').innerText = item.n; document.getElementById('modal-note').value = '';
             const dyn = document.getElementById('modal-dynamic-options'); dyn.innerHTML = '';
-            const radio = (grp, val, label, checked, price=0) => `<label class="flex-1 cursor-pointer"><input type="radio" name="${grp}" value="${val}|${price}" ${checked?'checked':''} class="hidden opt-radio" onchange="calcPrice()"><div class="border-2 p-3 rounded-xl text-center font-bold text-gray-600 transition-colors text-white">${label} ${price!=0 ? (price>0?'+'+price:price) : ''}</div></label>`;
-            const check = (grp, val, label, price=0) => `<label class="flex-1 cursor-pointer"><input type="checkbox" name="${grp}" value="${val}|${price}" class="hidden opt-checkbox" onchange="calcPrice()"><div class="border-2 p-3 rounded-xl text-center font-bold text-gray-600 transition-colors text-white">${label} ${price!=0 ? '+'+price : ''}</div></label>`;
+            const radio = (grp, val, label, checked, price=0) => `<label class="flex-1 cursor-pointer"><input type="radio" name="${grp}" value="${val}|${price}" ${checked?'checked':''} class="hidden opt-radio" onchange="calcPrice()"><div class="border-2 p-3 rounded-xl text-center font-bold text-gray-600 transition-colors">${label} ${price!=0 ? (price>0?'+'+price:price) : ''}</div></label>`;
+            const check = (grp, val, label, price=0) => `<label class="flex-1 cursor-pointer"><input type="checkbox" name="${grp}" value="${val}|${price}" class="hidden opt-checkbox" onchange="calcPrice()"><div class="border-2 p-3 rounded-xl text-center font-bold text-gray-600 transition-colors">${label} ${price!=0 ? '+'+price : ''}</div></label>`;
             const eggDoneness = `<div id="egg-wrapper" class="mt-4"><p class="text-sm font-bold text-orange-600 mb-2">蛋的熟度</p><div class="flex gap-2">${radio('egg_done', '全熟', '全熟', true)}${radio('egg_done', '半熟', '半熟', false)}</div></div>`;
             const drinkTemp = (iceOnly=false) => `<p class="text-sm font-bold text-gray-500 mb-2 mt-5">冰塊與溫度</p><div class="grid grid-cols-4 gap-2">${radio('d_temp', '冰', '冰', true)}${radio('d_temp', '去冰', '去冰', false)}${iceOnly?'':radio('d_temp', '溫', '溫', false)+radio('d_temp', '熱', '熱', false)}</div>`;
             if (type !== 'drink' && type !== 'combo' && type !== 'snack') dyn.innerHTML += `<div class="mb-5 flex gap-2">${check('addons', '加起司', '加起司', 10)}</div>`;
@@ -408,8 +412,8 @@
                 let datePart = fullTime.split(' ')[0] || '';
                 let timePart = fullTime.split(' ')[1] || '';
                 html += `
-                <div class="bg-white p-4 rounded-xl border shadow-sm relative overflow-hidden">
-                    <div class="flex justify-between items-start border-b pb-3 mb-3 text-gray-700">
+                <div class="bg-white p-4 rounded-xl border shadow-sm relative overflow-hidden text-gray-700">
+                    <div class="flex justify-between items-start border-b pb-3 mb-3">
                         <div>
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="bg-red-500 text-white font-black px-2 py-0.5 rounded text-sm">#${order.orderNo}</span>
@@ -432,22 +436,14 @@
         function submitOrder() {
             const name = document.getElementById('order-name').value;
             const phone = document.getElementById('order-phone').value;
-            
             if (!name) return alert("請輸入您的稱呼喔！");
-            
-            // 🛡️ 手機號碼格式防呆放寬 (改為純數字，長度 8~10 位)
             const phoneRegex = /^\d{8,10}$/; 
-            if (!phoneRegex.test(phone)) {
-                return alert("聯絡電話格式不對喔！\n請輸入正確的電話號碼。");
-            }
-            
+            if (!phoneRegex.test(phone)) { return alert("聯絡電話格式不對喔！\n請輸入正確的電話號碼。"); }
             if (cart.length === 0) return alert("購物車目前是空的喔！");
-            
             document.getElementById('btn-submit').innerText = '傳送中...';
             const slots = generateTimeSlots(15); let finalTime = (userTime === slots[0] || userTime > slots[0]) ? userTime : slots[0];
             const orderNo = String(Math.floor(Math.random() * 900) + 100);
             const orderTimeStr = new Date().toLocaleString('zh-TW', { hour12: false });
-            
             database.ref('orders').push({ orderNo, customer: name, phone, method: userMethod, table: userMethod === '內用' ? userTable : "", pickupTime: finalTime, items: cart, total: parseInt(document.getElementById('cart-total').innerText), time: orderTimeStr, status: "新訂單" }).then(() => {
                 let myOrders = JSON.parse(localStorage.getItem('meitian_history') || '[]');
                 myOrders.unshift({ orderNo, method: userMethod, time: finalTime, orderTime: orderTimeStr, total: parseInt(document.getElementById('cart-total').innerText), items: cart });
