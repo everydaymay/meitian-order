@@ -5,14 +5,14 @@
     
     const FORCE_CLOSE = false;         // 🚨 想立刻關店休息？將 false 改成 true
     
-    const HOLIDAYS = [];               // 🏖️ 特殊公休日 (目前清空，有需要再填)
+    const HOLIDAYS = [];               // 🏖️ 特殊公休日 (填入日期，中間用逗號隔開)
                                        // 範例格式： ["2026-03-20", "2026-03-21"]
     
     const CLOSED_DAYS = [0];           // 🗓️ 每週固定公休 (0 是週日, 6 是週六)
     
     const OPEN_TIME = "05:30";         // ⏰ 開門營業時間
-    const LAST_ORDER = "10:50";        // ⏰ 最後收單時間 (過後不能送單)
-    const CLOSE_TIME = "11:00";        // ⏰ 門市正式打烊時間
+    const LAST_ORDER = "16:50";        // ⏰ 最後收單時間 (過後不能送單)
+    const CLOSE_TIME = "17:00";        // ⏰ 門市正式打烊時間
     
     // ============================================================
 </script>
@@ -56,7 +56,8 @@
 
         <div id="closed-overlay" class="fixed inset-0 bg-black/90 z-[100] hidden flex-col items-center justify-center p-6 text-center">
             <div class="text-6xl mb-4">🌙</div>
-            <h2 class="text-3xl font-black text-white mb-2">店面休息中</h2>
+            <h2 class="text-3xl font-black text-white mb-1">店面休息中</h2>
+            <p class="text-orange-400 text-xl font-black mb-4 italic underline decoration-2 underline-offset-4">每週日公休</p>
             <p id="store-hours-text" class="text-gray-300 font-bold mb-6"></p>
             <p class="text-orange-500 font-bold border-2 border-orange-500 p-3 rounded-xl">期待在營業時間為您服務！</p>
         </div>
@@ -145,7 +146,7 @@
             if (FORCE_CLOSE || isHoliday || isFixedOff || timeNum < openNum || timeNum >= lastNum) {
                 document.getElementById('closed-overlay').classList.remove('hidden');
                 document.getElementById('closed-overlay').classList.add('flex');
-                document.getElementById('store-hours-text').innerHTML = `營業時間：${OPEN_TIME} ~ ${CLOSE_TIME}<br>(最後點餐時間 ${LAST_ORDER})`;
+                document.getElementById('store-hours-text').innerHTML = `營業時間：週一至週六 ${OPEN_TIME} ~ ${CLOSE_TIME}<br>(最後點餐時間 ${LAST_ORDER})`;
                 return false;
             }
             return true;
@@ -399,6 +400,4 @@
         window.onload = init;
     </script>
 </body>
-
 </html>
-
