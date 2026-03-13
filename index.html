@@ -30,30 +30,11 @@
         .opt-radio + div { color: #4b5563; }
         .opt-radio:checked + div { background-color: #fff7ed; border-color: #ea580c; color: #ea580c !important; font-weight: bold; }
         .opt-checkbox:checked + div { background-color: #fff7ed; border-color: #ea580c; color: #ea580c !important; font-weight: bold; }
-        
-        /* 💡 狀態進度條動畫 */
-        .progress-step { transition: all 0.5s ease-in-out; }
-        .progress-active { color: #ea580c !important; transform: scale(1.15); opacity: 1 !important; }
     </style>
 </head>
 <body class="bg-gray-50 flex justify-center h-screen overflow-hidden text-gray-800 font-sans">
     <div class="w-full max-w-md bg-white h-full flex flex-col relative shadow-2xl border-x">
         
-        <div id="order-tracking-bar" class="hidden bg-slate-900 text-white p-4 shrink-0 shadow-lg border-b-4 border-orange-500 z-30 transition-all">
-            <div class="flex justify-between items-center mb-4">
-                <span class="font-black text-orange-500 text-lg">您的餐點進度</span>
-                <span id="track-order-no" class="bg-white text-slate-900 px-3 py-1 rounded-lg font-black text-sm">#000</span>
-            </div>
-            <div class="flex justify-between text-xs font-bold mb-2 relative">
-                <div id="step-1" class="z-10 text-center opacity-40 progress-step">●<br>已送單</div>
-                <div id="step-2" class="z-10 text-center opacity-40 progress-step">●<br>製作中</div>
-                <div id="step-3" class="z-10 text-center opacity-40 progress-step">●<br>可取餐</div>
-                <div class="absolute top-1.5 left-4 right-4 h-0.5 bg-slate-700 -z-0"></div>
-                <div id="progress-line" class="absolute top-1.5 left-4 h-0.5 bg-orange-500 transition-all duration-500 w-0 z-0"></div>
-            </div>
-            <p id="track-message" class="text-center text-xs text-slate-400 mt-2 font-bold animate-pulse">正在等待店家確認訂單...</p>
-        </div>
-
         <header class="bg-orange-500 text-white px-4 py-5 shrink-0 shadow-lg z-20">
             <div class="flex justify-between items-center">
                 <div class="flex-1 mr-2 text-white">
@@ -71,6 +52,54 @@
 
         <div id="nav-bar" class="flex overflow-x-auto py-3 px-2 bg-white gap-1 hide-scrollbar shrink-0 border-b sticky top-0 z-10 whitespace-nowrap shadow-sm items-stretch"></div>
         <div id="menu-box" class="flex-1 overflow-y-auto p-4 space-y-8 pb-32 bg-gray-50"></div>
+
+        <button id="floating-track-btn" onclick="showTrackingScreen()" class="hidden fixed bottom-24 right-4 bg-orange-600 text-white px-5 py-3 rounded-full shadow-2xl z-40 animate-bounce font-black border-2 border-white">
+            🏃 追蹤進度
+        </button>
+
+        <div id="live-tracking-screen" class="fixed inset-0 bg-white z-[150] hidden flex-col transition-all modal-enter max-w-md mx-auto border-x">
+            <div class="bg-slate-900 text-white p-6 pt-12 pb-10 text-center rounded-b-[40px] shadow-lg shrink-0">
+                <h2 class="text-orange-500 font-black text-xl mb-1 tracking-widest">美天早餐</h2>
+                <p class="text-5xl font-black mb-3 text-white shadow-sm tracking-tighter">#<span id="track-order-no-big">000</span></p>
+                <div class="inline-flex items-center gap-3 bg-slate-800 px-4 py-2 rounded-full border border-slate-700">
+                    <span class="text-sm font-bold text-slate-300"><span id="track-method"></span></span>
+                    <span class="w-1 h-1 bg-slate-500 rounded-full"></span>
+                    <span class="text-sm font-black text-orange-400">取餐: <span id="track-time"></span></span>
+                </div>
+            </div>
+            
+            <div class="flex-1 p-6 flex flex-col justify-center w-full bg-gray-50">
+                <div class="relative mb-12 px-2">
+                    <div class="absolute top-1/2 left-10 right-10 h-1.5 bg-gray-200 -translate-y-1/2 rounded-full"></div>
+                    <div id="progress-line-big" class="absolute top-1/2 left-10 h-1.5 bg-orange-500 -translate-y-1/2 transition-all duration-700 w-0 rounded-full"></div>
+                    
+                    <div class="flex justify-between relative z-10">
+                        <div id="step-big-1" class="flex flex-col items-center">
+                            <div class="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-black border-4 border-white shadow-md transition-all">1</div>
+                            <span class="text-xs font-bold mt-2 text-orange-600">已送單</span>
+                        </div>
+                        <div id="step-big-2" class="flex flex-col items-center">
+                            <div class="w-10 h-10 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center font-black border-4 border-white transition-all">2</div>
+                            <span class="text-xs font-bold mt-2 text-gray-400">製作中</span>
+                        </div>
+                        <div id="step-big-3" class="flex flex-col items-center">
+                            <div class="w-10 h-10 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center font-black border-4 border-white transition-all">3</div>
+                            <span class="text-xs font-bold mt-2 text-gray-400">可取餐</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center bg-white p-8 rounded-[30px] border border-gray-100 shadow-xl shadow-orange-100/50">
+                    <div class="text-6xl mb-4" id="track-icon">⏳</div>
+                    <h3 class="text-2xl font-black text-gray-800 mb-2" id="track-message-big">等待店家確認</h3>
+                    <p class="text-sm text-gray-500 font-bold" id="track-submessage">訂單已成功送出，請稍候</p>
+                </div>
+            </div>
+            
+            <div class="p-6 shrink-0 w-full bg-white border-t">
+                <button onclick="hideTrackingScreen()" class="w-full py-4 rounded-xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors active:scale-95">縮小畫面，先回菜單逛逛</button>
+            </div>
+        </div>
 
         <div id="closed-overlay" class="fixed inset-0 bg-black/90 z-[100] hidden flex-col items-center justify-center p-6 text-center text-white">
             <div class="text-6xl mb-4">🌙</div>
@@ -157,57 +186,96 @@
 
         let cart = []; let curItem = null; let basePrice = 0; let userMethod = "外帶"; let userTable = ""; let userTime = ""; let editingIndex = -1;
         let curModalQty = 1;
+        let isUserViewingMenu = false; // 追蹤用戶是否手動縮小了追蹤畫面
 
-        // 💡 頁面載入時，檢查是否有正在進行中的訂單
         function checkActiveOrder() {
             const activeOrderId = localStorage.getItem('meitian_active_order');
-            if (activeOrderId) {
-                trackLiveOrder(activeOrderId);
-            }
+            if (activeOrderId) trackLiveOrder(activeOrderId, false);
         }
 
-        // 💡 Firebase 即時追蹤邏輯
-        function trackLiveOrder(orderId) {
-            const trackBar = document.getElementById('order-tracking-bar');
+        // 💡 追蹤畫面控制
+        function showTrackingScreen() {
+            isUserViewingMenu = false;
+            document.getElementById('live-tracking-screen').classList.remove('hidden');
+            document.getElementById('live-tracking-screen').classList.add('flex');
+            document.getElementById('floating-track-btn').classList.add('hidden');
+        }
+
+        function hideTrackingScreen() {
+            isUserViewingMenu = true;
+            document.getElementById('live-tracking-screen').classList.add('hidden');
+            document.getElementById('live-tracking-screen').classList.remove('flex');
+            document.getElementById('floating-track-btn').classList.remove('hidden');
+        }
+
+        function trackLiveOrder(orderId, forceOpen = true) {
             database.ref('orders/' + orderId).on('value', (snap) => {
                 const data = snap.val();
                 if (!data) { 
-                    trackBar.classList.add('hidden'); 
+                    hideTrackingScreen();
+                    document.getElementById('floating-track-btn').classList.add('hidden');
                     localStorage.removeItem('meitian_active_order');
                     return; 
                 }
                 
-                // 如果已完成，隱藏進度條並清除追蹤
+                // 訂單完成
                 if (data.status === "已完成") {
-                    trackBar.classList.add('hidden');
+                    hideTrackingScreen();
+                    document.getElementById('floating-track-btn').classList.add('hidden');
                     localStorage.removeItem('meitian_active_order');
                     alert("✅ 您的餐點已完成，感謝您的購買！");
+                    
+                    // 順便把歷史紀錄的狀態也改成已完成
+                    let myOrders = JSON.parse(localStorage.getItem('meitian_history') || '[]');
+                    let found = myOrders.find(o => o.orderNo === data.orderNo);
+                    if(found) { found.status = "已完成"; localStorage.setItem('meitian_history', JSON.stringify(myOrders)); }
                     return;
                 }
 
-                trackBar.classList.remove('hidden');
-                document.getElementById('track-order-no').innerText = '#' + data.orderNo;
+                // 更新畫面資料
+                document.getElementById('track-order-no-big').innerText = data.orderNo;
+                document.getElementById('track-method').innerText = data.method + (data.table ? ` (${data.table})` : '');
+                document.getElementById('track-time').innerText = data.pickupTime;
                 
-                let step = 1; let msg = "正在等待店家確認訂單...";
-                if (data.status === "製作中") { step = 2; msg = "👨‍🍳 店家已接單，正在為您製作中！"; }
-                if (data.status === "可取餐") { step = 3; msg = "🔔 餐點好囉！請前往取餐/入座"; }
+                let step = 1; let msg = "等待店家確認"; let subMsg = "訂單已成功送出，請稍候"; let icon = "⏳";
+                if (data.status === "製作中") { step = 2; msg = "店家已接單！"; subMsg = "正在為您精心製作中"; icon = "🍳"; }
+                if (data.status === "可取餐") { step = 3; msg = "餐點好囉！"; subMsg = "請前往取餐 / 入座享用"; icon = "🎉"; }
                 
-                // UI 動畫更新
-                document.getElementById('track-message').innerText = msg;
-                document.getElementById('track-message').className = `text-center text-xs mt-2 font-bold ${step === 3 ? 'text-green-400 animate-bounce' : 'text-slate-400'}`;
+                document.getElementById('track-icon').innerText = icon;
+                document.getElementById('track-message-big').innerText = msg;
+                document.getElementById('track-message-big').className = `text-2xl font-black mb-2 ${step === 3 ? 'text-green-600' : 'text-gray-800'}`;
+                document.getElementById('track-submessage').innerText = subMsg;
                 
-                ["step-1", "step-2", "step-3"].forEach((s, idx) => {
-                    const el = document.getElementById(s);
-                    if (idx < step) { el.classList.remove('opacity-40'); el.classList.add('progress-active'); }
-                    else { el.classList.add('opacity-40'); el.classList.remove('progress-active'); }
+                [1, 2, 3].forEach(i => {
+                    const stepDiv = document.getElementById('step-big-' + i).firstElementChild;
+                    const stepText = document.getElementById('step-big-' + i).lastElementChild;
+                    if (i < step) {
+                        stepDiv.className = "w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-black border-4 border-white shadow-md transition-all";
+                        stepText.className = "text-xs font-bold mt-2 text-orange-600 transition-all";
+                    } else if (i === step) {
+                        stepDiv.className = "w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-black border-4 border-white shadow-lg scale-125 transition-all animate-pulse";
+                        stepText.className = "text-xs font-black mt-2 text-orange-600 transition-all";
+                    } else {
+                        stepDiv.className = "w-10 h-10 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center font-black border-4 border-white transition-all";
+                        stepText.className = "text-xs font-bold mt-2 text-gray-400 transition-all";
+                    }
                 });
                 
-                document.getElementById('progress-line').style.width = ((step-1)/2 * 90) + '%';
+                document.getElementById('progress-line-big').style.width = ((step-1)/2 * 100) + '%';
                 
-                // 取餐震動提醒
-                if (step === 3 && "vibrate" in navigator) {
-                    navigator.vibrate([200, 100, 200, 100, 200]);
+                if (step === 3 && "vibrate" in navigator) navigator.vibrate([200, 100, 200]);
+
+                // 控制顯示邏輯
+                if (!isUserViewingMenu || forceOpen || step === 3) {
+                    showTrackingScreen();
+                } else {
+                    document.getElementById('floating-track-btn').classList.remove('hidden');
                 }
+                
+                // 同步更新歷史紀錄狀態
+                let myOrders = JSON.parse(localStorage.getItem('meitian_history') || '[]');
+                let found = myOrders.find(o => o.orderNo === data.orderNo);
+                if(found && found.status !== data.status) { found.status = data.status; localStorage.setItem('meitian_history', JSON.stringify(myOrders)); }
             });
         }
 
@@ -252,7 +320,7 @@
         ];
 
         function init() {
-            checkActiveOrder(); // 💡 載入時檢查進度
+            checkActiveOrder(); // 💡 載入時先檢查有沒有尚未完成的訂單
             
             const slots = generateTimeSlots(15); if (!checkStoreStatus()) return;
             document.getElementById('setup-time').innerHTML = slots.map(t => `<option value="${t}">${t}</option>`).join('');
@@ -354,18 +422,15 @@
                     const orderNo = String(snap.val()).padStart(3, '0');
                     let orderData = { orderNo, customer: name, phone, method: userMethod, table: userTable, pickupTime: finalTime, items: cart, total: parseInt(document.getElementById('cart-total').innerText), time: now.toLocaleString('zh-TW'), status: "新訂單" };
                     
-                    // 💡 送出並獲取這筆訂單的專屬 ID
                     const newOrderRef = database.ref('orders').push();
                     newOrderRef.set(orderData).then(() => {
                         let myOrders = JSON.parse(localStorage.getItem('meitian_history') || '[]');
                         myOrders.unshift({ orderNo, method: userMethod, time: orderData.pickupTime, total: orderData.total, items: cart, status: "新訂單" });
                         localStorage.setItem('meitian_history', JSON.stringify(myOrders.slice(0,10)));
                         
-                        // 💡 儲存此訂單 ID 到手機，準備追蹤
+                        // 儲存正在進行的訂單 ID 並重新載入
                         localStorage.setItem('meitian_active_order', newOrderRef.key);
-                        
-                        alert(`🎉 訂單已送出！單號：#${orderNo}\n您可以在網頁頂端追蹤進度喔！`); 
-                        location.reload(); // 重新整理後會自動觸發 checkActiveOrder()
+                        location.reload(); 
                     });
                 }
             });
@@ -416,19 +481,39 @@
         function toggleTableInput() { const method = document.querySelector('input[name="order_method"]:checked').value; document.getElementById('setup-table').classList.toggle('hidden', method !== '內用'); }
         function startOrdering() { userMethod = document.querySelector('input[name="order_method"]:checked').value; userTable = document.getElementById('setup-table').value; userTime = document.getElementById('setup-time').value; if(userMethod === '內用' && !userTable) return alert('請輸入桌號'); document.getElementById('welcome-modal').classList.add('hidden'); }
         
+        // 💡 歷史紀錄完美修復版
         function renderHistory() {
             let myOrders = JSON.parse(localStorage.getItem('meitian_history') || '[]');
             const hDiv = document.getElementById('history-items');
             if(myOrders.length === 0) { hDiv.innerHTML = '<p class="text-center text-gray-400 mt-10">目前無紀錄</p>'; return; }
             hDiv.innerHTML = myOrders.map(o => `
-                <div class="bg-white p-4 rounded-xl border shadow-sm relative overflow-hidden">
-                    ${o.status === '新訂單' ? '<div class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg animate-pulse">處理中</div>' : ''}
-                    <div class="flex justify-between border-b pb-2 mb-2">
-                        <span class="font-black text-red-500">#${o.orderNo}</span>
-                        <span class="font-bold text-orange-600">${o.time}</span>
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
+                    ${(o.status === '新訂單' || o.status === '製作中') ? '<div class="absolute top-0 right-0 bg-red-400 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg animate-pulse shadow-sm">處理中</div>' : ''}
+                    ${o.status === '可取餐' ? '<div class="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg animate-pulse shadow-sm">可取餐</div>' : ''}
+                    
+                    <div class="flex justify-between border-b pb-3 mb-3 items-center mt-2">
+                        <div>
+                            <span class="font-black text-red-500 text-lg mr-2">#${o.orderNo}</span>
+                            <span class="text-xs text-gray-500 font-bold bg-gray-100 px-2 py-1 rounded-md">${o.method}</span>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[10px] text-gray-400 font-bold">預計取餐</div>
+                            <div class="font-black text-orange-600 text-xl leading-tight">${o.time}</div>
+                        </div>
                     </div>
-                    <div class="text-sm space-y-1">${o.items.map(i => `<div>${i.n} x ${i.q}</div>`).join('')}</div>
-                    <div class="text-right font-black mt-2">$${o.total}</div>
+                    
+                    <div class="text-sm space-y-2 mb-3">
+                        ${o.items.map(i => `
+                            <div class="flex justify-between text-gray-700">
+                                <span>${i.n}</span>
+                                <span class="font-black text-gray-500">x ${i.q}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="text-right font-black mt-2 text-xl text-gray-800 border-t pt-2">
+                        <span class="text-xs text-gray-400 font-normal mr-1">總計</span>$${o.total}
+                    </div>
                 </div>
             `).join('');
         }
