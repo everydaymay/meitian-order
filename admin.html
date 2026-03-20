@@ -148,24 +148,40 @@
             const hashBuffer = await crypto.subtle.digest('SHA-1', data);
             const SIG = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-            // 5. 撰寫「飛鵝專用」排版語法 (媽媽友善、廚房作戰專用版)
-            let content = `<C>美天早餐 - 廚房單</C><BR>`;
-            content += `<CB>#${order.orderNo} ${order.method}</CB><BR>`; // 單號跟外帶內用並列，超級放大！
-            content += `預計取餐：<B>${order.pickupTime}</B><BR>`;
+            // 5. 撰寫「飛鵝專用」排版語法 (主次分明 + 總件數防漏單)
+            let content = `<C>-- 美天早餐 廚房單 --</C><BR>`;
+            content += `<CB>#${order.orderNo} ${order.method}</CB><BR>`; 
+            content += `時間：<B>${order.pickupTime}</B><BR>`;
             content += `客戶：${order.customer} / ${order.phone}<BR>`;
             if(order.table) content += `桌號：<B>${order.table}</B><BR>`;
             content += `--------------------------------<BR>`;
             
+            let totalQty = 0; // 💡 新增一個小算盤：用來記錄這單總共有幾個餐點
+            
             // 把餐點、金額跟備註列出來
             order.items.forEach(item => {
-                let itemTotal = item.p * (item.q || 1); // 計算單項總價
-                content += `<B>x${item.q || 1} ${item.n}</B>  $${itemTotal}<BR>`;
-                if (item.d) content += `<B>  ↳ ${item.d}</B><BR>`; // 備註變粗體，加上箭頭防呆
+                let qty = item.q || 1;
+                let itemTotal = item.p * qty; // 計算單項總價
+                
+                totalQty += qty; // 💡 每跑一個餐點，就把數量加進總數裡
+                
+                // 主餐點與金額：放大加粗 <B>，一眼看清要點什麼
+                content += `<B>x${qty} ${item.n}  $${itemTotal}</B><BR>`;
+                
+                // 備註：拿掉 <B> 恢復正常大小，加上 - 縮排
+                if (item.d) {
+                    content += `   - ${item.d}<BR>`; 
+                }
+                
+                // 每個商品印完，強制多空一行，把不同商品區隔開來！
+                content += `<BR>`;
             });
             
             content += `--------------------------------<BR>`;
-            content += `<RIGHT>總計金額：$${order.total}</RIGHT><BR><BR><BR><BR>`; // 留空讓撕紙更方便
-
+            // 💡 在右下角先印出「總共幾份」，再印出「總計金額」
+            content += `<RIGHT>總共：${totalQty} 份餐點</RIGHT><BR>`;
+            content += `<RIGHT><B>總計：$${order.total}</B></RIGHT><BR><BR><BR><BR>`;
+            
             // 6. 準備發送給印表機
             const params = new URLSearchParams();
             params.append('user', USER);
