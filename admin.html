@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>美天早餐 - 雙機自動印單系統 🖨️🏷️</title>
+    <title>美天早餐 - 接單與自動印單系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -111,7 +111,7 @@
                         <div class="flex items-center gap-4 mt-auto pt-4 border-t border-slate-700">
                             <p class="text-3xl font-black text-green-400">$${order.total}</p>
                             <div class="flex-1">
-                                ${isNew ? `<button onclick="acceptOrderAndPrint('${order.key}')" class="w-full bg-red-500 text-white font-black py-4 rounded-xl shadow-xl animate-pulse text-lg">1. 接單 + 雙機列印 🖨️</button>` : 
+                                ${isNew ? `<button onclick="acceptOrderAndPrint('${order.key}')" class="w-full bg-red-500 text-white font-black py-4 rounded-xl shadow-xl animate-pulse text-lg">1. 接單 + 雙機自動列印 🖨️</button>` : 
                                  (isMaking ? `<button onclick="updateStatus('${order.key}', '可取餐')" class="w-full bg-blue-500 text-white font-black py-4 rounded-xl shadow-xl text-lg">2. 通知客人取餐</button>` :
                                  `<button onclick="updateStatus('${order.key}', '已完成')" class="w-full bg-green-500 text-slate-900 font-black py-4 rounded-xl shadow-xl ready-flash text-lg">3. 完成結單</button>`)}
                             </div>
@@ -133,8 +133,8 @@
 
             const USER = "betty9387@ymail.com";
             const UKEY = "bfMbcQQkYVuq5ykM";
-            const RECEIPT_SN = "924755630"; // 🖨️ 出單機
-            const LABEL_SN = "960299581";   // 🏷️ 標籤機
+            const RECEIPT_SN = "924755630"; // 🖨️ 廚房出單機
+            const LABEL_SN = "960299581";   // 🏷️ 標籤貼紙機
             const STIME = Math.floor(Date.now() / 1000).toString();
 
             const encoder = new TextEncoder();
@@ -143,7 +143,7 @@
             const SIG = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
             // ========================================================
-            // 🖨️ 任務一：發送給「廚房出單機」
+            // 🖨️ 任務一：發送給「廚房出單機」 (完美排版)
             // ========================================================
             let oTime = new Date(order.time);
             let formattedOrderTime = order.time; 
@@ -189,42 +189,38 @@
             fetch("https://api.feieyun.cn/Api/Open/", { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: receiptParams.toString() });
 
             // ========================================================
-            // 🏷️ 任務二：發送給「標籤貼紙機」 (防重疊完美版)
+            // 🏷️ 任務二：發送給「標籤貼紙機」 (40x30mm 黃金比例版)
             // ========================================================
-            let labelContent = "";
+            // 💡 尺寸指令放最外面，告訴機器這是 40x30 的貼紙
+            let labelContent = `<SIZE>40,30</SIZE><DIRECTION>1</DIRECTION>`;
 
             order.items.forEach(item => {
                 let qty = item.q || 1;
-                // 有幾個商品，就印幾張貼紙
                 for(let i = 1; i <= qty; i++) {
-                    labelContent += `<PAGE>`; // 💡 告訴機器：這是一張全新的貼紙 (清空畫布)
-                    labelContent += `<SIZE>40,30</SIZE>`;
-                    labelContent += `<DIRECTION>1</DIRECTION>`; 
+                    labelContent += `<PAGE>`; 
                     
-                    // 💡 單號放大 (字體必須是 TSS24.BF2 機器才看得懂)
-                    labelContent += `<TEXT x="10" y="15" font="TSS24.BF2" w="2" h="2" r="0">#${order.orderNo}</TEXT>`; 
+                    // 1️⃣ 單號 (放大兩倍，Y座標=15)
+                    labelContent += `<TEXT x="15" y="15" font="TSS24.BF2" w="2" h="2" r="0">#${order.orderNo}</TEXT>`; 
                     
-                    // 💡 品名 (Y座標=75)
-                    labelContent += `<TEXT x="10" y="75" font="TSS24.BF2" w="1" h="1" r="0">${item.n}</TEXT>`;        
+                    // 2️⃣ 品名 (限制最多12個字防超框，Y座標=75)
+                    let safeName = item.n.length > 12 ? item.n.substring(0, 12) : item.n;
+                    labelContent += `<TEXT x="15" y="75" font="TSS24.BF2" w="1" h="1" r="0">${safeName}</TEXT>`;        
                     
-                    let remarkY = 115;
+                    // 3️⃣ 備註 (自動切行，Y座標=110)
                     if (item.d) {
-                        // 💡 貼紙寬度有限，備註太長時自動切成兩行印
                         let remark1 = item.d.substring(0, 12);
                         let remark2 = item.d.substring(12, 24);
-                        labelContent += `<TEXT x="10" y="${remarkY}" font="TSS24.BF2" w="1" h="1" r="0">${remark1}</TEXT>`;   
+                        labelContent += `<TEXT x="15" y="110" font="TSS24.BF2" w="1" h="1" r="0">${remark1}</TEXT>`;   
+                        // 如果備註太長，自動換行印第二排 (Y座標=145)
                         if (remark2) {
-                            remarkY += 35; // 第二行往下移一點
-                            labelContent += `<TEXT x="10" y="${remarkY}" font="TSS24.BF2" w="1" h="1" r="0">${remark2}</TEXT>`;   
+                            labelContent += `<TEXT x="15" y="145" font="TSS24.BF2" w="1" h="1" r="0">${remark2}</TEXT>`;   
                         }
                     }
                     
-                    // 💡 底部資訊：外帶/內用 + 取餐時間 + (第幾份/總份數)
-                    let bottomY = remarkY + 45;
-                    if (bottomY > 200) bottomY = 200; // 防止印出貼紙外
-                    labelContent += `<TEXT x="10" y="${bottomY}" font="TSS24.BF2" w="1" h="1" r="0">${order.method} ${order.pickupTime} (${i}/${qty})</TEXT>`; 
+                    // 4️⃣ 底部資訊 (固定在最下方 Y座標=190，不會忽高忽低)
+                    labelContent += `<TEXT x="15" y="190" font="TSS24.BF2" w="1" h="1" r="0">${order.method} ${order.pickupTime} (${i}/${qty})</TEXT>`; 
                     
-                    labelContent += `</PAGE>`; // 💡 告訴機器：這張貼紙印完了，準備印下一張
+                    labelContent += `</PAGE>`; 
                 }
             });
 
