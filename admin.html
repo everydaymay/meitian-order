@@ -146,7 +146,7 @@
             const SIG = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
             // ========================================================
-            // 🖨️ 任務一：發送給「廚房出單機」 (原本完美的排版)
+            // 🖨️ 任務一：發送給「廚房出單機」 (ESC/POS 語言)
             // ========================================================
             let oTime = new Date(order.time);
             let formattedOrderTime = order.time; 
@@ -184,7 +184,7 @@
             receiptParams.append('user', USER);
             receiptParams.append('stime', STIME);
             receiptParams.append('sig', SIG);
-            receiptParams.append('apiname', 'Open_printMsg');
+            receiptParams.append('apiname', 'Open_printMsg'); // 💡 一般收據通道
             receiptParams.append('sn', RECEIPT_SN);
             receiptParams.append('content', receiptContent);
             receiptParams.append('times', '1');
@@ -192,20 +192,29 @@
             fetch("https://api.feieyun.cn/Api/Open/", { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: receiptParams.toString() });
 
             // ========================================================
-            // 🏷️ 任務二：發送給「標籤機」 (自動拆分貼紙)
+            // 🏷️ 任務二：發送給「標籤機」 (TSPL 標籤專用語法)
             // ========================================================
             let labelContent = "";
 
             order.items.forEach(item => {
                 let qty = item.q || 1;
-                // 有幾個商品，就跑幾次迴圈，印幾張貼紙！
                 for(let i = 1; i <= qty; i++) {
-                    labelContent += `<CB>#${order.orderNo}</CB><BR>`;  // 超大單號
-                    labelContent += `<C><B>${item.n}</B></C><BR>`;      // 餐點名稱 (置中加粗)
-                    if (item.d) labelContent += `<C>${item.d}</C><BR>`; // 備註 (置中)
-                    // 最下方資訊：外帶/內用 + 時間 + 第幾份
-                    labelContent += `<C>${order.method} ${order.pickupTime} (${i}/${qty})</C><BR>`;
-                    labelContent += `<PAGE>`; // 💡 飛鵝專用換頁指令，告訴標籤機這張貼紙結束了
+                    // 💡 預設貼紙尺寸為寬 40mm x 高 30mm (如果不對，印出來會有點歪，我們再調)
+                    labelContent += `<SIZE>40,30</SIZE>`;
+                    labelContent += `<DIRECTION>1</DIRECTION>`; // 排版方向
+                    
+                    // <TEXT x座標 y座標 字體 寬放大 高放大 旋轉>文字</TEXT>
+                    labelContent += `<TEXT x="10" y="10" font="12" w="2" h="2" r="0">#${order.orderNo}</TEXT>`; // 大單號
+                    labelContent += `<TEXT x="10" y="70" font="12" w="1" h="1" r="0">${item.n}</TEXT>`;        // 品名
+                    
+                    if (item.d) {
+                        labelContent += `<TEXT x="10" y="120" font="12" w="1" h="1" r="0">${item.d}</TEXT>`;   // 備註
+                        labelContent += `<TEXT x="10" y="170" font="12" w="1" h="1" r="0">${order.method} ${order.pickupTime} (${i}/${qty})</TEXT>`; // 底部資訊
+                    } else {
+                        // 如果沒備註，底部資訊往上提
+                        labelContent += `<TEXT x="10" y="120" font="12" w="1" h="1" r="0">${order.method} ${order.pickupTime} (${i}/${qty})</TEXT>`; 
+                    }
+                    labelContent += `<PAGE>`; // 換下一張貼紙
                 }
             });
 
@@ -214,7 +223,7 @@
                 labelParams.append('user', USER);
                 labelParams.append('stime', STIME);
                 labelParams.append('sig', SIG);
-                labelParams.append('apiname', 'Open_printMsg');
+                labelParams.append('apiname', 'Open_printLabelMsg'); // 💡 關鍵：標籤機專屬通道！
                 labelParams.append('sn', LABEL_SN);
                 labelParams.append('content', labelContent);
                 labelParams.append('times', '1');
