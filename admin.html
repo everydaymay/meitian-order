@@ -189,28 +189,42 @@
             fetch("https://api.feieyun.cn/Api/Open/", { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: receiptParams.toString() });
 
             // ========================================================
-            // 🏷️ 任務二：發送給「標籤貼紙機」
+            // 🏷️ 任務二：發送給「標籤貼紙機」 (防重疊完美版)
             // ========================================================
             let labelContent = "";
 
             order.items.forEach(item => {
                 let qty = item.q || 1;
+                // 有幾個商品，就印幾張貼紙
                 for(let i = 1; i <= qty; i++) {
-                    // 💡 設定貼紙大小為寬 40mm x 高 30mm
+                    labelContent += `<PAGE>`; // 💡 告訴機器：這是一張全新的貼紙 (清空畫布)
                     labelContent += `<SIZE>40,30</SIZE>`;
                     labelContent += `<DIRECTION>1</DIRECTION>`; 
                     
-                    // 💡 TSPL 座標語言：<TEXT x="X座標" y="Y座標" 字體 寬放大 高放大 旋轉角度>文字</TEXT>
-                    labelContent += `<TEXT x="10" y="10" font="12" w="2" h="2" r="0">#${order.orderNo}</TEXT>`; 
-                    labelContent += `<TEXT x="10" y="70" font="12" w="1" h="1" r="0">${item.n}</TEXT>`;        
+                    // 💡 單號放大 (字體必須是 TSS24.BF2 機器才看得懂)
+                    labelContent += `<TEXT x="10" y="15" font="TSS24.BF2" w="2" h="2" r="0">#${order.orderNo}</TEXT>`; 
                     
+                    // 💡 品名 (Y座標=75)
+                    labelContent += `<TEXT x="10" y="75" font="TSS24.BF2" w="1" h="1" r="0">${item.n}</TEXT>`;        
+                    
+                    let remarkY = 115;
                     if (item.d) {
-                        labelContent += `<TEXT x="10" y="110" font="12" w="1" h="1" r="0">${item.d}</TEXT>`;   
-                        labelContent += `<TEXT x="10" y="160" font="12" w="1" h="1" r="0">${order.method} ${order.pickupTime} (${i}/${qty})</TEXT>`; 
-                    } else {
-                        labelContent += `<TEXT x="10" y="110" font="12" w="1" h="1" r="0">${order.method} ${order.pickupTime} (${i}/${qty})</TEXT>`; 
+                        // 💡 貼紙寬度有限，備註太長時自動切成兩行印
+                        let remark1 = item.d.substring(0, 12);
+                        let remark2 = item.d.substring(12, 24);
+                        labelContent += `<TEXT x="10" y="${remarkY}" font="TSS24.BF2" w="1" h="1" r="0">${remark1}</TEXT>`;   
+                        if (remark2) {
+                            remarkY += 35; // 第二行往下移一點
+                            labelContent += `<TEXT x="10" y="${remarkY}" font="TSS24.BF2" w="1" h="1" r="0">${remark2}</TEXT>`;   
+                        }
                     }
-                    labelContent += `<PAGE>`; 
+                    
+                    // 💡 底部資訊：外帶/內用 + 取餐時間 + (第幾份/總份數)
+                    let bottomY = remarkY + 45;
+                    if (bottomY > 200) bottomY = 200; // 防止印出貼紙外
+                    labelContent += `<TEXT x="10" y="${bottomY}" font="TSS24.BF2" w="1" h="1" r="0">${order.method} ${order.pickupTime} (${i}/${qty})</TEXT>`; 
+                    
+                    labelContent += `</PAGE>`; // 💡 告訴機器：這張貼紙印完了，準備印下一張
                 }
             });
 
@@ -219,7 +233,7 @@
                 labelParams.append('user', USER);
                 labelParams.append('stime', STIME);
                 labelParams.append('sig', SIG);
-                labelParams.append('apiname', 'Open_printLabelMsg'); // 💡 標籤機專屬通道！
+                labelParams.append('apiname', 'Open_printLabelMsg');
                 labelParams.append('sn', LABEL_SN);
                 labelParams.append('content', labelContent);
                 labelParams.append('times', '1');
