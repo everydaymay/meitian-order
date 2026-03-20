@@ -127,32 +127,29 @@
             database.ref('orders/' + key).update({ status: newStatus });
         }
 
-        // 🖨️ 接單 + 自動列印的魔法函數
+        // 🖨️ 接單 + 雙機自動列印的魔法函數
         async function acceptOrderAndPrint(key) {
-            // 1. 先把 Firebase 上的狀態改成「製作中」，這樣鈴聲就會停
             updateStatus(key, '製作中');
-
-            // 2. 獲取這筆訂單的詳細資料
             const order = orderMap[key];
             if (!order) return;
 
-            // 3. 設定飛鵝雲 API 參數 (老闆的專屬鑰匙)
+            // 💡 您的飛鵝帳號與兩台機器的身分證
             const USER = "betty9387@ymail.com";
             const UKEY = "bfMbcQQkYVuq5ykM";
-            const SN = "924755630";
-            const STIME = Math.floor(Date.now() / 1000).toString(); // 當下時間戳
+            const RECEIPT_SN = "924755630"; // 🖨️ 第一台：廚房出單機
+            const LABEL_SN = "960299581";   // 🏷️ 第二台：標籤貼紙機
+            const STIME = Math.floor(Date.now() / 1000).toString();
 
-            // 4. SHA-1 加密計算 (這是飛鵝要求的安全認證)
             const encoder = new TextEncoder();
             const data = encoder.encode(USER + UKEY + STIME);
             const hashBuffer = await crypto.subtle.digest('SHA-1', data);
             const SIG = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-            // 5. 撰寫「飛鵝專用」排版語法 (區塊對齊 + 備註放大 + 增加下單時間版)
-            
-            // 💡 將 Firebase 的時間轉換為嚴格的 YYYY/MM/DD HH:MM (24小時制)
+            // ========================================================
+            // 🖨️ 任務一：發送給「廚房出單機」 (原本完美的排版)
+            // ========================================================
             let oTime = new Date(order.time);
-            let formattedOrderTime = order.time; // 預設防錯值
+            let formattedOrderTime = order.time; 
             if (!isNaN(oTime.getTime())) {
                 let yyyy = oTime.getFullYear();
                 let mm = String(oTime.getMonth() + 1).padStart(2, '0');
@@ -162,62 +159,68 @@
                 formattedOrderTime = `${yyyy}/${mm}/${dd} ${hh}:${mins}`;
             }
 
-            let content = `<C>-- 美天早餐 廚房單 --</C><BR>`;
-            content += `<CB>#${order.orderNo} ${order.method}</CB><BR>`; 
-            
-            // 💡 上面放取餐時間 (粗體大字)，下面放下單時間 (標準字體)
-            content += `取餐時間：<B>${order.pickupTime}</B><BR>`;
-            content += `下單時間：${formattedOrderTime}<BR>`;
-            
-            content += `客戶：${order.customer} / ${order.phone}<BR>`;
-            if(order.table) content += `桌號：<B>${order.table}</B><BR>`;
-            content += `--------------------------------<BR>`;
+            let receiptContent = `<C>-- 美天早餐 廚房單 --</C><BR>`;
+            receiptContent += `<CB>#${order.orderNo} ${order.method}</CB><BR>`; 
+            receiptContent += `取餐時間：<B>${order.pickupTime}</B><BR>`;
+            receiptContent += `下單時間：${formattedOrderTime}<BR>`;
+            receiptContent += `客戶：${order.customer} / ${order.phone}<BR>`;
+            if(order.table) receiptContent += `桌號：<B>${order.table}</B><BR>`;
+            receiptContent += `--------------------------------<BR>`;
             
             let totalQty = 0; 
-            
             order.items.forEach(item => {
                 let qty = item.q || 1;
                 let itemTotal = item.p * qty; 
                 totalQty += qty; 
-                
-                // 餐點名稱與數量 (大字)
-                content += `<B>x${qty} ${item.n}</B><BR>`;
-                
-                // 備註 (大字，縮排加星號)
-                if (item.d) {
-                    content += `<B>  * ${item.d}</B><BR>`; 
-                }
-                
-                // 金額獨立一行，統一靠右對齊 (大字)
-                content += `<RIGHT><B>$${itemTotal}</B></RIGHT>`;
-                content += `--------------------------------<BR>`;
+                receiptContent += `<B>x${qty} ${item.n}</B><BR>`;
+                if (item.d) receiptContent += `<B>  * ${item.d}</B><BR>`; 
+                receiptContent += `<RIGHT><B>$${itemTotal}</B></RIGHT>`;
+                receiptContent += `--------------------------------<BR>`;
             });
-            
-            // 右下角總計區塊
-            content += `<RIGHT>總共：${totalQty} 份餐點</RIGHT><BR>`;
-            content += `<RIGHT><B>總計：$${order.total}</B></RIGHT><BR><BR><BR><BR>`;
-            
-            // 6. 準備發送給印表機
-            const params = new URLSearchParams();
-            params.append('user', USER);
-            params.append('stime', STIME);
-            params.append('sig', SIG);
-            params.append('apiname', 'Open_printMsg');
-            params.append('sn', SN);
-            params.append('content', content);
-            params.append('times', '1');
+            receiptContent += `<RIGHT>總共：${totalQty} 份餐點</RIGHT><BR>`;
+            receiptContent += `<RIGHT><B>總計：$${order.total}</B></RIGHT><BR><BR><BR><BR>`;
 
-            // 7. 直接呼叫飛鵝雲端
-            fetch("https://api.feieyun.cn/Api/Open/", {
-                method: 'POST',
-                mode: 'no-cors', // 允許跨域直接傳送指令
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: params.toString()
-            }).then(() => {
-                console.log("列印指令已送出！");
-            }).catch(err => {
-                console.error("印表機連線可能有問題：", err);
+            const receiptParams = new URLSearchParams();
+            receiptParams.append('user', USER);
+            receiptParams.append('stime', STIME);
+            receiptParams.append('sig', SIG);
+            receiptParams.append('apiname', 'Open_printMsg');
+            receiptParams.append('sn', RECEIPT_SN);
+            receiptParams.append('content', receiptContent);
+            receiptParams.append('times', '1');
+
+            fetch("https://api.feieyun.cn/Api/Open/", { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: receiptParams.toString() });
+
+            // ========================================================
+            // 🏷️ 任務二：發送給「標籤機」 (自動拆分貼紙)
+            // ========================================================
+            let labelContent = "";
+
+            order.items.forEach(item => {
+                let qty = item.q || 1;
+                // 有幾個商品，就跑幾次迴圈，印幾張貼紙！
+                for(let i = 1; i <= qty; i++) {
+                    labelContent += `<CB>#${order.orderNo}</CB><BR>`;  // 超大單號
+                    labelContent += `<C><B>${item.n}</B></C><BR>`;      // 餐點名稱 (置中加粗)
+                    if (item.d) labelContent += `<C>${item.d}</C><BR>`; // 備註 (置中)
+                    // 最下方資訊：外帶/內用 + 時間 + 第幾份
+                    labelContent += `<C>${order.method} ${order.pickupTime} (${i}/${qty})</C><BR>`;
+                    labelContent += `<PAGE>`; // 💡 飛鵝專用換頁指令，告訴標籤機這張貼紙結束了
+                }
             });
+
+            if (labelContent !== "") {
+                const labelParams = new URLSearchParams();
+                labelParams.append('user', USER);
+                labelParams.append('stime', STIME);
+                labelParams.append('sig', SIG);
+                labelParams.append('apiname', 'Open_printMsg');
+                labelParams.append('sn', LABEL_SN);
+                labelParams.append('content', labelContent);
+                labelParams.append('times', '1');
+
+                fetch("https://api.feieyun.cn/Api/Open/", { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: labelParams.toString() });
+            }
         }
     </script>
 </body>
