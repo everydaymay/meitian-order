@@ -148,10 +148,27 @@
             const hashBuffer = await crypto.subtle.digest('SHA-1', data);
             const SIG = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-            // 5. 撰寫「飛鵝專用」排版語法 (區塊對齊 + 備註放大版)
+            // 5. 撰寫「飛鵝專用」排版語法 (區塊對齊 + 備註放大 + 增加下單時間版)
+            
+            // 💡 將 Firebase 的時間轉換為嚴格的 YYYY/MM/DD HH:MM (24小時制)
+            let oTime = new Date(order.time);
+            let formattedOrderTime = order.time; // 預設防錯值
+            if (!isNaN(oTime.getTime())) {
+                let yyyy = oTime.getFullYear();
+                let mm = String(oTime.getMonth() + 1).padStart(2, '0');
+                let dd = String(oTime.getDate()).padStart(2, '0');
+                let hh = String(oTime.getHours()).padStart(2, '0');
+                let mins = String(oTime.getMinutes()).padStart(2, '0');
+                formattedOrderTime = `${yyyy}/${mm}/${dd} ${hh}:${mins}`;
+            }
+
             let content = `<C>-- 美天早餐 廚房單 --</C><BR>`;
             content += `<CB>#${order.orderNo} ${order.method}</CB><BR>`; 
-            content += `時間：<B>${order.pickupTime}</B><BR>`;
+            
+            // 💡 上面放取餐時間 (粗體大字)，下面放下單時間 (標準字體)
+            content += `取餐時間：<B>${order.pickupTime}</B><BR>`;
+            content += `下單時間：${formattedOrderTime}<BR>`;
+            
             content += `客戶：${order.customer} / ${order.phone}<BR>`;
             if(order.table) content += `桌號：<B>${order.table}</B><BR>`;
             content += `--------------------------------<BR>`;
@@ -163,18 +180,16 @@
                 let itemTotal = item.p * qty; 
                 totalQty += qty; 
                 
-                // 1. 餐點名稱與數量 (大字)
+                // 餐點名稱與數量 (大字)
                 content += `<B>x${qty} ${item.n}</B><BR>`;
                 
-                // 2. 備註 (加上 <B> 變大字！並且縮排加星號，一眼看清)
+                // 備註 (大字，縮排加星號)
                 if (item.d) {
                     content += `<B>  * ${item.d}</B><BR>`; 
                 }
                 
-                // 3. 金額獨立一行，統一靠右對齊 (大字)
+                // 金額獨立一行，統一靠右對齊 (大字)
                 content += `<RIGHT><B>$${itemTotal}</B></RIGHT>`;
-                
-                // 💡 神來一筆：每個餐點印完畫一條虛線，保證絕對整齊一致！
                 content += `--------------------------------<BR>`;
             });
             
