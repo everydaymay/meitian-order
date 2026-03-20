@@ -148,7 +148,7 @@
             const hashBuffer = await crypto.subtle.digest('SHA-1', data);
             const SIG = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-            // 5. 撰寫「飛鵝專用」排版語法 (主次分明 + 總件數防漏單)
+            // 5. 撰寫「飛鵝專用」排版語法 (區塊對齊 + 備註放大版)
             let content = `<C>-- 美天早餐 廚房單 --</C><BR>`;
             content += `<CB>#${order.orderNo} ${order.method}</CB><BR>`; 
             content += `時間：<B>${order.pickupTime}</B><BR>`;
@@ -156,29 +156,29 @@
             if(order.table) content += `桌號：<B>${order.table}</B><BR>`;
             content += `--------------------------------<BR>`;
             
-            let totalQty = 0; // 💡 新增一個小算盤：用來記錄這單總共有幾個餐點
+            let totalQty = 0; 
             
-            // 把餐點、金額跟備註列出來
             order.items.forEach(item => {
                 let qty = item.q || 1;
-                let itemTotal = item.p * qty; // 計算單項總價
+                let itemTotal = item.p * qty; 
+                totalQty += qty; 
                 
-                totalQty += qty; // 💡 每跑一個餐點，就把數量加進總數裡
+                // 1. 餐點名稱與數量 (大字)
+                content += `<B>x${qty} ${item.n}</B><BR>`;
                 
-                // 主餐點與金額：放大加粗 <B>，一眼看清要點什麼
-                content += `<B>x${qty} ${item.n}  $${itemTotal}</B><BR>`;
-                
-                // 備註：拿掉 <B> 恢復正常大小，加上 - 縮排
+                // 2. 備註 (加上 <B> 變大字！並且縮排加星號，一眼看清)
                 if (item.d) {
-                    content += `   - ${item.d}<BR>`; 
+                    content += `<B>  * ${item.d}</B><BR>`; 
                 }
                 
-                // 每個商品印完，強制多空一行，把不同商品區隔開來！
-                content += `<BR>`;
+                // 3. 金額獨立一行，統一靠右對齊 (大字)
+                content += `<RIGHT><B>$${itemTotal}</B></RIGHT>`;
+                
+                // 💡 神來一筆：每個餐點印完畫一條虛線，保證絕對整齊一致！
+                content += `--------------------------------<BR>`;
             });
             
-            content += `--------------------------------<BR>`;
-            // 💡 在右下角先印出「總共幾份」，再印出「總計金額」
+            // 右下角總計區塊
             content += `<RIGHT>總共：${totalQty} 份餐點</RIGHT><BR>`;
             content += `<RIGHT><B>總計：$${order.total}</B></RIGHT><BR><BR><BR><BR>`;
             
