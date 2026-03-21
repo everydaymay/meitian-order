@@ -129,7 +129,6 @@
         function generateLabelStr(order, itemName, itemDesc, currentCount, totalCount) {
             let singleLabel = `<SIZE>40,30</SIZE><DIRECTION>1</DIRECTION><PAGE>`; 
             
-            // 💡 第一排 (Y=15)：單號 + 外帶/內用(X桌) + 進度，全擠在最上面，且高度皆為大字 (h=2)
             singleLabel += `<TEXT x="10" y="15" font="TSS24.BF2" w="2" h="2" r="0">#${order.orderNo}</TEXT>`; 
             
             let methodStr = order.method === "內用" && order.table ? `內用(${order.table}桌)` : order.method;
@@ -138,11 +137,11 @@
             
             singleLabel += `<TEXT x="230" y="15" font="TSS24.BF2" w="1" h="2" r="0">(${currentCount}/${totalCount})</TEXT>`; 
             
-            // 💡 第二排 (Y=70)：品名，兩倍高字體
+            // 💡 品名兩倍高字體
             let nWidth = itemName.length > 6 ? "1" : "2"; 
             singleLabel += `<TEXT x="10" y="70" font="TSS24.BF2" w="${nWidth}" h="2" r="0">${itemName}</TEXT>`;        
             
-            // 💡 第三排以後：空間全部留給備註！
+            // 💡 空間全部留給備註！
             if (itemDesc) {
                 if (itemDesc.length > 26) {
                     let rY = 125;
@@ -178,7 +177,7 @@
             const encoder = new TextEncoder();
 
             // ========================================================
-            // 🖨️ 任務一：發送給「廚房出單機」 (維持不變)
+            // 🖨️ 任務一：發送給「廚房出單機」
             // ========================================================
             let oTime = new Date(order.time);
             let formattedOrderTime = order.time; 
@@ -229,26 +228,22 @@
             fetch("https://api.feieyun.cn/Api/Open/", { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: receiptParams.toString() });
 
             // ========================================================
-            // 🏷️ 任務二：發送給「標籤貼紙機」 (套餐拆解邏輯)
+            // 🏷️ 任務二：發送給「標籤貼紙機」 (套餐防呆加上套餐名)
             // ========================================================
             let labelJobs = [];
             
-            // 💡 1. 預先算出「真正要印幾張貼紙」
             let finalTotalLabels = 0;
             order.items.forEach(item => { 
                 let qty = parseInt(item.q, 10) || 1;
                 if (item.type === 'combo') {
-                    // 套餐基本有主餐+飲料 = 2張
                     finalTotalLabels += (2 * qty);
-                    // 如果是兒童餐，多一張吐司 = 再+1張
                     if (item.n === '兒童餐') finalTotalLabels += qty;
                 } else {
-                    // 一般單點商品就是 1 張
                     finalTotalLabels += qty;
                 }
             });
             
-            let currentItemCount = 0; // 追蹤現在印到第幾張貼紙
+            let currentItemCount = 0; 
 
             order.items.forEach(item => {
                 let qty = parseInt(item.q, 10) || 1;
@@ -256,15 +251,12 @@
                 for(let i = 1; i <= qty; i++) {
                     
                     if (item.type === 'combo') {
-                        // 💡 這是套餐！開始拆解成多張貼紙！
-                        
-                        // 先把長長的備註字串拆開
                         let parts = item.d ? item.d.split(' / ') : [];
-                        let drinkStr = "中紅"; // 預設飲料
-                        let drinkTempStr = ""; // 飲料溫度
-                        let mainFoodDescArr = []; // 主餐備註
-                        let noteStr = ""; // 客人手打備註
-                        let kidsJamStr = "巧克力"; // 兒童餐預設果醬
+                        let drinkStr = "中紅"; 
+                        let drinkTempStr = ""; 
+                        let mainFoodDescArr = []; 
+                        let noteStr = ""; 
+                        let kidsJamStr = "巧克力"; 
 
                         parts.forEach(p => {
                             if (p.startsWith('飲:')) {
@@ -272,7 +264,7 @@
                             } else if (p === '冰' || p === '去冰' || p === '溫' || p === '熱') {
                                 drinkTempStr = p;
                             } else if (p.startsWith('備:')) {
-                                noteStr = p; // 備註統一印在主餐上
+                                noteStr = p; 
                             } else if (p.startsWith('換:')) {
                                 kidsJamStr = p.replace('換:', '');
                             } else {
@@ -287,27 +279,27 @@
                         let mainDesc = mainFoodDescArr.join(' / ');
                         labelJobs.push(generateLabelStr(order, mainFoodName, mainDesc, currentItemCount, finalTotalLabels));
 
-                        // --- 印第二張：飲料 ---
+                        // --- 印第二張：飲料 (💡 加上套餐名防呆) ---
                         currentItemCount++;
-                        let drinkName = drinkStr;
+                        let drinkName = `${item.n}-${drinkStr}`; // 變成 "1號餐-紅茶(中)"
                         labelJobs.push(generateLabelStr(order, drinkName, drinkTempStr, currentItemCount, finalTotalLabels));
 
-                        // --- 印第三張 (只有兒童餐)：果醬吐司 ---
+                        // --- 印第三張：果醬吐司 (💡 加上套餐名防呆) ---
                         if (item.n === '兒童餐') {
                             currentItemCount++;
-                            let toastName = "果醬吐司";
+                            let toastName = `${item.n}-果醬吐司`; // 變成 "兒童餐-果醬吐司"
                             labelJobs.push(generateLabelStr(order, toastName, kidsJamStr, currentItemCount, finalTotalLabels));
                         }
 
                     } else {
-                        // 💡 正常單點商品，直接印一張
+                        // 一般單點
                         currentItemCount++;
                         labelJobs.push(generateLabelStr(order, item.n, item.d, currentItemCount, finalTotalLabels));
                     }
                 }
             });
 
-            // 暴力破解法：排隊送出！每次送一張，停頓 0.8 秒，絕不漏單！
+            // 排隊送出
             for (let j = 0; j < labelJobs.length; j++) {
                 let currentStime = Math.floor(Date.now() / 1000).toString();
                 let currentData = encoder.encode(USER + UKEY + currentStime);
