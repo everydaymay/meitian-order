@@ -190,39 +190,54 @@
             fetch("https://api.feieyun.cn/Api/Open/", { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: receiptParams.toString() });
 
             // ========================================================
-            // 🏷️ 任務二：發送給「標籤貼紙機」 (強制一張一張獨立發送)
+            // 🏷️ 任務二：發送給「標籤貼紙機」 (總進度 + 粗大字體版)
             // ========================================================
             let labelJobs = [];
+            
+            // 💡 先算出這張單「總共有幾份」，裝袋核對用！
+            let finalTotalQty = 0;
+            order.items.forEach(item => { finalTotalQty += (parseInt(item.q, 10) || 1); });
+            
+            let currentItemCount = 0; // 追蹤現在印到第幾份
 
-            // 把所有的貼紙先存進一個陣列裡排隊
             order.items.forEach(item => {
                 let qty = parseInt(item.q, 10) || 1;
                 for(let i = 1; i <= qty; i++) {
-                    // 💡 每張貼紙都是一個「完整獨立」的指令，保證絕不互相干擾！
+                    currentItemCount++; // 每次印一張貼紙，進度就 +1
+                    
                     let singleLabel = `<SIZE>40,30</SIZE><DIRECTION>1</DIRECTION><PAGE>`; 
                     
-                    singleLabel += `<TEXT x="15" y="15" font="TSS24.BF2" w="2" h="2" r="0">#${order.orderNo}</TEXT>`; 
+                    // 💡 1. 單號 + 外帶/內用 (y=15，字體放大兩倍，外帶/內用移到單號旁邊)
+                    singleLabel += `<TEXT x="10" y="15" font="TSS24.BF2" w="2" h="2" r="0">#${order.orderNo}</TEXT>`; 
+                    let methodStr = order.method + (order.table ? `(${order.table})` : '');
+                    // 如果有寫桌號比較長，字體就正常寬度，不然就一起放大兩倍寬
+                    let mWidth = methodStr.length > 2 ? "1" : "2"; 
+                    singleLabel += `<TEXT x="150" y="15" font="TSS24.BF2" w="${mWidth}" h="2" r="0">${methodStr}</TEXT>`;
                     
-                    let safeName = item.n.length > 12 ? item.n.substring(0, 12) : item.n;
-                    singleLabel += `<TEXT x="15" y="75" font="TSS24.BF2" w="1" h="1" r="0">${safeName}</TEXT>`;        
+                    // 💡 2. 品名 (y=75，字體高度放大兩倍，寬度依字數調整)
+                    let nWidth = item.n.length > 6 ? "1" : "2"; 
+                    singleLabel += `<TEXT x="10" y="75" font="TSS24.BF2" w="${nWidth}" h="2" r="0">${item.n}</TEXT>`;        
                     
+                    // 💡 3. 備註 (y=135，字體高度放大兩倍)
                     if (item.d) {
-                        let remark1 = item.d.substring(0, 12);
-                        let remark2 = item.d.substring(12, 24);
-                        singleLabel += `<TEXT x="15" y="110" font="TSS24.BF2" w="1" h="1" r="0">${remark1}</TEXT>`;   
-                        if (remark2) {
-                            singleLabel += `<TEXT x="15" y="145" font="TSS24.BF2" w="1" h="1" r="0">${remark2}</TEXT>`;   
+                        if (item.d.length > 13) {
+                            // 如果備註超級長，自動切成兩行
+                            singleLabel += `<TEXT x="10" y="135" font="TSS24.BF2" w="1" h="1" r="0">${item.d.substring(0, 13)}</TEXT>`;   
+                            singleLabel += `<TEXT x="10" y="165" font="TSS24.BF2" w="1" h="1" r="0">${item.d.substring(13, 26)}</TEXT>`;   
+                        } else {
+                            singleLabel += `<TEXT x="10" y="135" font="TSS24.BF2" w="1" h="2" r="0">${item.d}</TEXT>`;   
                         }
                     }
                     
-                    singleLabel += `<TEXT x="15" y="190" font="TSS24.BF2" w="1" h="1" r="0">${order.method} ${order.pickupTime} (${i}/${qty})</TEXT>`; 
+                    // 💡 4. 底部資訊：拿掉時間，只保留超大總進度 (y=195)
+                    singleLabel += `<TEXT x="10" y="195" font="TSS24.BF2" w="2" h="2" r="0">(${currentItemCount}/${finalTotalQty})</TEXT>`; 
                     
                     singleLabel += `</PAGE>`; 
                     labelJobs.push(singleLabel);
                 }
             });
 
-            // 💡 暴力破解法：排隊送出！每次送一張，停頓 0.8 秒，再送下一張！
+            // 排隊送出！每次送一張，停頓 0.8 秒，絕不重疊！
             for (let j = 0; j < labelJobs.length; j++) {
                 let currentStime = Math.floor(Date.now() / 1000).toString();
                 let currentData = encoder.encode(USER + UKEY + currentStime);
@@ -245,7 +260,6 @@
                     body: labelParams.toString() 
                 });
 
-                // 等待 0.8 秒，讓飛鵝雲有時間消化這張貼紙，才不會重疊
                 if (j < labelJobs.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, 800));
                 }
