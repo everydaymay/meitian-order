@@ -291,7 +291,6 @@
             return true;
         }
 
-        // 💡 1. 加入包含內容說明的套餐清單
         const list_combo = [
             {n:"1號餐(鐵板麵+豬排+蛋+中紅)", p:85},
             {n:"2號餐(蘿蔔糕+煎餃+原味蛋餅+中紅)", p:70},
@@ -307,7 +306,6 @@
         const list_jam = ["奶油", "花生", "草莓", "巧克力", "椰香", "奶酥", "藍莓", "香蒜"];
         const list_drinks = [{n:"紅茶", m:15, l:20}, {n:"奶茶", m:20, l:25}, {n:"豆漿", m:20}, {n:"無糖豆漿", m:20}, {n:"黑芝麻", m:30}, {n:"杏仁漿", m:30}, {n:"燕麥薏仁", m:30}, {n:"鴛鴦", m:25, l:30}, {n:"鮮奶茶", m:30, l:35}, {n:"特調咖啡", m:25, l:30}, {n:"香濃可可", m:30}, {n:"美式咖啡", m:40, l:50}, {n:"鮮奶咖啡", m:50, l:60}, {n:"柳橙汁", m:25, l:30, iceOnly:true}, {n:"檸檬紅茶", m:25, l:30, iceOnly:true}, {n:"瓶裝牛奶", m:30, bottle:true}];
 
-        // 💡 2. 套餐系列分類名稱更新
         const menuData = [
             { id: "combo", cat: "套餐(內容恕不更換)", type: "combo", items: list_combo },
             { id: "toast", cat: "吐司", type: "toast", items: list_toast },
@@ -342,7 +340,6 @@
                 const grid = document.createElement('div'); grid.className = "grid grid-cols-1 gap-3";
                 sec.items.forEach(item => {
                     let pText = sec.type === 'drink' ? (item.pl ? `$${item.pm} / $${item.pl}` : `$${item.pm}`) : `$${item.p}`;
-                    // 💡 套餐名稱比較長，調整字體大小以免跑版
                     let nTextClass = item.n.includes('(') ? 'font-bold text-gray-700 text-sm' : 'font-bold text-gray-700 text-lg';
                     grid.innerHTML += `<div onclick='openModal(${JSON.stringify(item)}, "${sec.type}")' class="bg-white p-4 rounded-2xl shadow-sm border flex justify-between items-center active:scale-95 transition-transform cursor-pointer"><span class="${nTextClass}">${item.n}</span><span class="text-orange-600 font-black shrink-0 ml-2">${pText} <span class="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full ml-1 font-bold">+</span></span></div>`;
                 });
@@ -359,7 +356,6 @@
             curItem = item; curItem.type = type; basePrice = item.p || (type === 'drink' ? item.pm : 0);
             curModalQty = 1; document.getElementById('modal-qty').innerText = curModalQty; 
             
-            // 💡 彈出視窗標題，把套餐後面的內容說明隱藏，保持簡潔
             let displayTitle = item.n;
             if(type === 'combo') displayTitle = item.n.split('(')[0]; 
             document.getElementById('modal-title').innerText = displayTitle; 
@@ -370,6 +366,7 @@
             const check = (grp, val, label, price=0) => `<label class="flex-1 cursor-pointer"><input type="checkbox" name="${grp}" value="${val}|${price}" class="hidden opt-checkbox" onchange="calcPrice()"><div class="border-2 p-3 rounded-xl text-center font-bold transition-colors">${label} ${price!=0 ? '+'+price : ''}</div></label>`;
             const eggDoneness = `<div id="egg-wrapper" class="mt-4"><p class="text-sm font-bold text-orange-600 mb-2">蛋的熟度</p><div class="flex gap-2">${radio('egg_done', '全熟', '全熟', true)}${radio('egg_done', '半熟', '半熟', false)}</div></div>`;
             const drinkTemp = (iceOnly=false) => `<p class="text-sm font-bold text-gray-500 mb-2 mt-5">冰塊與溫度</p><div class="grid grid-cols-4 gap-2">${radio('d_temp', '冰', '冰', true)}${radio('d_temp', '去冰', '去冰', false)}${iceOnly?'':radio('d_temp', '溫', '溫', false)+radio('d_temp', '熱', '熱', false)}</div>`;
+            
             if (type !== 'drink' && type !== 'combo' && type !== 'snack') dyn.innerHTML += `<div class="mb-5 flex gap-2">${check('addons', '加起司', '加起司', 10)}</div>`;
             if (['toast', 'burger', 'bread_no_egg', 'flatbread'].includes(type)) {
                 if (item.sweet || type === 'bread_no_egg') dyn.innerHTML += `<div class="mt-4 flex gap-2">${check('addons', '加蛋', '加蛋', 15)}</div>`;
@@ -399,21 +396,22 @@
                     dyn.innerHTML += `<p class="font-bold text-orange-600 mb-2 mt-2">✦ 吐司口味更換</p><select id="kids-jam" class="w-full border-2 p-3 rounded-xl font-bold bg-orange-50 text-orange-800 outline-none"><option value="巧克力">巧克力(預設)</option><option value="草莓">草莓</option><option value="花生">花生</option><option value="奶油">奶油</option><option value="奶酥">奶酥</option><option value="藍莓">藍莓</option></select>`;
                 }
                 
-                // 💡 3. 飲料換購：折抵 15 元
+                // 💡 飲料換購設定回「折抵 10 元」
                 let dOpts = ''; list_drinks.forEach(d => {
-                    let diffM = d.m - 15; // 減去中杯紅茶的 15 元
-                    if (diffM === 0) {
-                        dOpts += `<option value="${d.n}(中)|0">${d.n}(中) +0元</option>`;
-                    } else {
-                        dOpts += `<option value="${d.n}(中)|${diffM}">${d.n}(中) +${diffM}元</option>`;
+                    if (d.n === '紅茶') { 
+                        dOpts += `<option value="${d.n}(中)|0">${d.n}(中) +0元</option>`; 
+                        if(d.l) dOpts += `<option value="${d.n}(大)|${d.l - 10}">${d.n}(大) +${d.l - 10}元</option>`; 
                     }
-                    
-                    if(d.l) { 
-                        let diffL = d.l - 15; 
-                        dOpts += `<option value="${d.n}(大)|${diffL}">${d.n}(大) +${diffL}元</option>`; 
+                    else { 
+                        let diffM = d.m - 10; 
+                        dOpts += `<option value="${d.n}(中)|${diffM}">${d.n}(中) +${diffM}元</option>`; 
+                        if(d.l) { 
+                            let diffL = d.l - 10; 
+                            dOpts += `<option value="${d.n}(大)|${diffL}">${d.n}(大) +${diffL}元</option>`; 
+                        } 
                     }
                 });
-                dyn.innerHTML += `<p class="font-bold text-orange-600 mb-2 mt-5">✦ 飲料換購 (套餐已含$15飲品)</p><select id="combo-drink" class="w-full border-2 p-3 rounded-xl font-bold bg-orange-50 text-orange-800 outline-none" onchange="calcPrice()">${dOpts}</select>${drinkTemp()}`;
+                dyn.innerHTML += `<p class="font-bold text-orange-600 mb-2 mt-5">✦ 飲料換購 (折抵10元)</p><select id="combo-drink" class="w-full border-2 p-3 rounded-xl font-bold bg-orange-50 text-orange-800 outline-none" onchange="calcPrice()">${dOpts}</select>${drinkTemp()}`;
             }
             document.getElementById('option-modal').classList.remove('hidden'); document.getElementById('option-modal').classList.add('flex');
             dyn.scrollTop = 0; setTimeout(calcPrice, 10);
@@ -427,7 +425,6 @@
 
         function addToCart() {
             let p = parseInt(document.getElementById('modal-price-display').innerText.replace('$','')) / curModalQty; 
-            // 💡 存入購物車時，如果是套餐，把括號後面的字拔掉，不然標籤貼紙會印不下
             let n = curItem.type === 'combo' ? curItem.n.split('(')[0] : curItem.n; 
             
             let details = []; let rawState = { radios: {}, checks: [], selects: {} };
