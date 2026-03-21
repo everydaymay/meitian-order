@@ -475,7 +475,14 @@
         }
 
         function updateCart() {
-            document.getElementById('cart-count').innerText = cart.length; const cDiv = document.getElementById('cart-items'); cDiv.innerHTML = '';
+            // 💡 修正：不再算「有幾種」商品，而是把每個商品的數量加總起來！
+            let totalItemsCount = 0;
+            cart.forEach(i => {
+                totalItemsCount += i.q;
+            });
+            document.getElementById('cart-count').innerText = totalItemsCount; 
+            
+            const cDiv = document.getElementById('cart-items'); cDiv.innerHTML = '';
             let t = 0;
             cart.forEach((i, idx) => {
                 t += (i.p * i.q);
