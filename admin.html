@@ -190,11 +190,11 @@
             fetch("https://api.feieyun.cn/Api/Open/", { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: receiptParams.toString() });
 
             // ========================================================
-            // 🏷️ 任務二：發送給「標籤貼紙機」 (時間移除、外帶上移、字體全放大、備註自動排版)
+            // 🏷️ 任務二：發送給「標籤貼紙機」 (無時間、外帶內用(桌)上移、字體全放大、備註防卡版)
             // ========================================================
             let labelJobs = [];
             
-            // 💡 1. 先精準算出這張單「總共有幾份實體商品」，作為進度的分母
+            // 💡 1. 精準算出這張單「總共有幾份實體商品」，作為進度的分母
             let finalTotalQty = 0;
             order.items.forEach(item => { finalTotalQty += (parseInt(item.q, 10) || 1); });
             
@@ -207,21 +207,23 @@
                     
                     let singleLabel = `<SIZE>40,30</SIZE><DIRECTION>1</DIRECTION><PAGE>`; 
                     
-                    // 💡 第一排 (Y=15)：單號 + 外帶/內用 + 進度，全擠在最上面，且高度皆為大字 (h=2)
+                    // 💡 第一排 (Y=15)：單號 + 外帶/內用(X桌) + 進度，全擠在最上面，且高度皆為大字 (h=2)
                     singleLabel += `<TEXT x="10" y="15" font="TSS24.BF2" w="2" h="2" r="0">#${order.orderNo}</TEXT>`; 
                     
-                    // 外帶/內用移到單號旁邊 (X=115)
-                    let methodStr = order.method + (order.table ? `(${order.table})` : '');
-                    singleLabel += `<TEXT x="115" y="15" font="TSS24.BF2" w="1" h="2" r="0">${methodStr}</TEXT>`;
+                    // 💡 外帶/內用移到單號旁邊 (X=115)，且內用會加上「桌」字
+                    let methodStr = order.method === "內用" && order.table ? `內用(${order.table}桌)` : order.method;
+                    // 如果有寫內用幾桌比較長，字體就正常寬度，不然"外帶"就一起放大兩倍寬
+                    let mWidth = methodStr.length > 2 ? "1" : "2"; 
+                    singleLabel += `<TEXT x="115" y="15" font="TSS24.BF2" w="${mWidth}" h="2" r="0">${methodStr}</TEXT>`;
                     
-                    // 進度 (1/3) 移到最右邊 (X=230)
+                    // 💡 進度 (1/3) 移到最右邊 (X=230)
                     singleLabel += `<TEXT x="230" y="15" font="TSS24.BF2" w="1" h="2" r="0">(${currentItemCount}/${finalTotalQty})</TEXT>`; 
                     
                     // 💡 第二排 (Y=70)：品名，兩倍高字體
                     let nWidth = item.n.length > 6 ? "1" : "2"; 
                     singleLabel += `<TEXT x="10" y="70" font="TSS24.BF2" w="${nWidth}" h="2" r="0">${item.n}</TEXT>`;        
                     
-                    // 💡 第三排以後：空間全部留給備註！
+                    // 💡 第三排以後：空間全部留給備註！(因為底部時間拿掉了，Y=195的空間也解放了)
                     if (item.d) {
                         if (item.d.length > 26) {
                             // 如果是超級龜毛客人 (>26字)，縮小字體(h=1)硬塞最多 4 行
