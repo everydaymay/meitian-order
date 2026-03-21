@@ -291,12 +291,12 @@
             return true;
         }
 
-        // 💡 1. 加入套餐清單
+        // 💡 1. 真正的套餐清單在這裡！
         const list_combo = [
-            {n:"1號餐(鐵板麵+豬排+蛋+中紅)", p:105},
-            {n:"2號餐(原味蛋餅+熱狗+中紅)", p:65},
-            {n:"3號餐(起士蛋吐司+小雞球+中紅)", p:80},
-            {n:"4號餐(香雞堡+薯條+中紅)", p:90}
+            {n:"1號餐", p:85},
+            {n:"2號餐", p:70},
+            {n:"3號餐", p:65},
+            {n:"兒童餐", p:60}
         ];
 
         const list_toast = [{n:"煎蛋吐司",p:30},{n:"肉鬆蛋吐司",p:35},{n:"火腿蛋吐司",p:35},{n:"培根蛋吐司",p:35},{n:"起士蛋吐司",p:35},{n:"薯餅蛋吐司",p:40},{n:"肉排蛋吐司",p:40},{n:"鮪魚蛋吐司",p:40},{n:"香雞排蛋吐司",p:45},{n:"里肌豬排蛋吐司",p:45},{n:"鮮蝦蛋吐司",p:45},{n:"燻雞蛋吐司",p:45},{n:"藍帶豬排蛋吐司",p:60},{n:"雞柳蛋吐司",p:60},{n:"明太鱈魚蛋吐司",p:65},{n:"菲力雞排蛋吐司",p:65},{n:"卡拉雞腿蛋吐司(辣味)",p:65}];
@@ -307,9 +307,9 @@
         const list_jam = ["奶油", "花生", "草莓", "巧克力", "椰香", "奶酥", "藍莓", "香蒜"];
         const list_drinks = [{n:"紅茶", m:15, l:20}, {n:"奶茶", m:20, l:25}, {n:"豆漿", m:20}, {n:"無糖豆漿", m:20}, {n:"黑芝麻", m:30}, {n:"杏仁漿", m:30}, {n:"燕麥薏仁", m:30}, {n:"鴛鴦", m:25, l:30}, {n:"鮮奶茶", m:30, l:35}, {n:"特調咖啡", m:25, l:30}, {n:"香濃可可", m:30}, {n:"美式咖啡", m:40, l:50}, {n:"鮮奶咖啡", m:50, l:60}, {n:"柳橙汁", m:25, l:30, iceOnly:true}, {n:"檸檬紅茶", m:25, l:30, iceOnly:true}, {n:"瓶裝牛奶", m:30, bottle:true}];
 
-        // 💡 2. 將套餐組合放進選單的第一個
+        // 💡 2. 將套餐組合放進選單的第一個，其他維持不變
         const menuData = [
-            { id: "combo", cat: "超值套餐", type: "combo", items: list_combo },
+            { id: "combo", cat: "套餐系列", type: "combo", items: list_combo },
             { id: "toast", cat: "吐司", type: "toast", items: list_toast },
             { id: "burger", cat: "漢堡", type: "burger", items: list_burger },
             { id: "baguette", cat: "軟法", type: "bread_no_egg", items: list_baguette },
@@ -326,7 +326,6 @@
         function init() {
             checkActiveOrder(); 
             
-            // 💡 記憶客人的姓名與電話
             document.getElementById('order-name').value = localStorage.getItem('meitian_name') || '';
             document.getElementById('order-phone').value = localStorage.getItem('meitian_phone') || '';
 
@@ -381,8 +380,18 @@
                 if(item.pl) dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">大小杯</p><div class="flex gap-2">${radio('d_size', '中杯', '中杯', true, 0)}${radio('d_size', '大杯', '大杯', false, item.pl - item.pm)}</div>`;
                 if (!item.bottle) dyn.innerHTML += drinkTemp(item.iceOnly);
             } else if (type === 'combo') {
-                if(item.n.includes('1號餐')) dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">鐵板麵口味 (必選)</p><div class="flex gap-2 mb-5">${radio('n_flavor', '蘑菇', '蘑菇', true)}${radio('n_flavor', '黑胡椒', '黑胡椒', false)}</div>`;
-                if(item.n.includes('2號餐')) dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">蛋餅醬料</p><div class="flex gap-2 mb-5">${radio('sauce', '醬油膏', '醬油膏', true)}${radio('sauce', '辣椒醬油', '辣椒醬油', false)}${radio('sauce', '不加醬', '不加醬', false)}</div>`;
+                // 💡 3. 真實套餐的專屬配料選項！
+                if(item.n === '1號餐') {
+                    dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">鐵板麵口味 (必選)</p><div class="flex gap-2 mb-5">${radio('n_flavor', '蘑菇', '蘑菇', true)}${radio('n_flavor', '黑胡椒', '黑胡椒', false)}</div>`;
+                    dyn.innerHTML += eggDoneness;
+                } else if (item.n === '2號餐') {
+                    dyn.innerHTML += `<p class="font-bold text-gray-500 mb-2">蛋餅醬料</p><div class="flex gap-2 mb-5">${radio('sauce', '醬油膏', '醬油膏', true)}${radio('sauce', '辣椒醬油', '辣椒醬油', false)}${radio('sauce', '不加醬', '不加醬', false)}</div>`;
+                } else if (item.n === '3號餐') {
+                    dyn.innerHTML += eggDoneness;
+                } else if (item.n === '兒童餐') {
+                    dyn.innerHTML += `<p class="font-bold text-orange-600 mb-2 mt-2">✦ 吐司口味更換</p><select id="kids-jam" class="w-full border-2 p-3 rounded-xl font-bold bg-orange-50 text-orange-800 outline-none"><option value="巧克力">巧克力(預設)</option><option value="草莓">草莓</option><option value="花生">花生</option><option value="奶油">奶油</option><option value="奶酥">奶酥</option><option value="藍莓">藍莓</option></select>`;
+                }
+                
                 let dOpts = ''; list_drinks.forEach(d => {
                     if (d.n === '紅茶') { dOpts += `<option value="${d.n}(中)|0">${d.n}(中) +0元</option>`; if(d.l) dOpts += `<option value="${d.n}(大)|${d.l - 10}">${d.n}(大) +${d.l - 10}元</option>`; }
                     else { let diffM = d.m - 10; dOpts += `<option value="${d.n}(中)|${diffM}">${d.n}(中) +${diffM}元</option>`; if(d.l) { let diffL = d.l - 10; dOpts += `<option value="${d.n}(大)|${diffL}">${d.n}(大) +${diffL}元</option>`; } }
@@ -407,12 +416,15 @@
                 if(!['正常含蛋', '薄片', '中杯'].includes(val)) {
                     if (r.name === 'egg_done') {
                         let hasEgg = document.querySelector('input[name="has_egg"]:checked'); let addEgg = document.querySelector('input[name="addons"][value^="加蛋"]:checked');
-                        if (curItem.type === 'noodle' || (hasEgg && hasEgg.value.includes('正常')) || addEgg || n.includes('荷包蛋')) details.push(`${val}`);
+                        if (curItem.type === 'noodle' || (hasEgg && hasEgg.value.includes('正常')) || addEgg || n.includes('荷包蛋') || (curItem.type === 'combo' && (n === '1號餐' || n === '3號餐'))) details.push(`${val}`);
                     } else if (r.name === 'n_flavor' && curItem.type === 'combo') { details.push(`${val}口味`); } else { details.push(val); }
                 }
             });
             document.querySelectorAll('#modal-dynamic-options input[type="checkbox"]:checked').forEach(c => { rawState.checks.push(c.value); details.push(c.value.split('|')[0]); });
+            
             if (document.getElementById('combo-drink')) { rawState.selects['combo-drink'] = document.getElementById('combo-drink').value; details.push(`飲:${document.getElementById('combo-drink').value.split('|')[0]}`); }
+            if (document.getElementById('kids-jam')) { rawState.selects['kids-jam'] = document.getElementById('kids-jam').value; if(document.getElementById('kids-jam').value !== '巧克力') details.push(`換:${document.getElementById('kids-jam').value}`); }
+            
             let note = document.getElementById('modal-note').value; if (note) details.push(`備:${note}`);
             
             let detailsStr = details.join(' / ');
@@ -521,7 +533,6 @@
         function toggleTableInput() { const method = document.querySelector('input[name="order_method"]:checked').value; document.getElementById('setup-table').classList.toggle('hidden', method !== '內用'); }
         function startOrdering() { userMethod = document.querySelector('input[name="order_method"]:checked').value; userTable = document.getElementById('setup-table').value; userTime = document.getElementById('setup-time').value; if(userMethod === '內用' && !userTable) return alert('請輸入桌號'); document.getElementById('welcome-modal').classList.add('hidden'); }
         
-        // 💡 確保這裡使用的是您原本的漂亮白色卡片樣式！
         function renderHistory() {
             let myOrders = JSON.parse(localStorage.getItem('meitian_history') || '[]');
             const hDiv = document.getElementById('history-items');
